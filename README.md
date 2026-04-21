@@ -116,13 +116,18 @@ graph LR
 ## 🛠 Technical Stack
 
 ### Mobile (Flutter)
-- **Framework**: `Flutter ^3.19.0`
-- **State Management**: Provider/Riverpod
-- **Backend**: Firebase Auth, Firestore, Cloud Functions
+- **Framework**: `Flutter ^3.8.1`
+- **Backend**: Firebase Auth, Firestore, DBs
 
 ### Admin (Web)
-- **Control**: Real-time management interface
-- **Analytics**: Integrated data visualization
+- **Framework**: `React js`
+- **Admin Panel Demo**: https://together-wellness.web.app/
+
+### DataBase
+- **Platform**: `Firebase`
+- **Database**: `Firestore`
+- **Authentication**: `Firebase Firestore 90% + Firebase Auth 10%`
+- **Storage**: `DBS`
 
 ### Getting Started
 1. **Clone**: `git clone https://github.com/HassanAmeer/velmora_health_app.git`
