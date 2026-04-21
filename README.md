@@ -1,67 +1,83 @@
-# 🌿 Velmora Health App
+# 🌿 Velmora Health Ecosystem
 
 [![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
-[![Status](https://img.shields.io/badge/Status-Development-orange?style=for-the-badge)]()
+[![Platform](https://img.shields.io/badge/Platforms-Mobile%20%7C%20Web-blue?style=for-the-badge)]()
 
-**Velmora** is a high-end health and wellness ecosystem designed specifically for couples. It blends scientific wellness routines (like Kegel exercises) with interactive gamification and personalized AI guidance to enhance relationship health and intimate well-being.
+**Velmora** is a comprehensive dual-platform wellness ecosystem. It combines a premium Flutter mobile application for couples with a powerful administrative dashboard for system-wide orchestration.
 
 ---
 
-## 🚀 Platform Architecture
+<p align="center">
+  <a href="#-mobile-app-demo">
+    <img src="https://img.shields.io/badge/%F0%9F%93%B1%20Mobile%20App-View%20Demo-615ced?style=for-the-badge&logoWidth=40" alt="Mobile App" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="#-admin-panel-demo">
+    <img src="https://img.shields.io/badge/%F0%9F%92%BB%20Admin%20Panel-View%20Demo-ff8c00?style=for-the-badge&logoWidth=40" alt="Admin Panel" />
+  </a>
+</p>
 
-The Velmora ecosystem consists of two integrated platforms:
+---
 
-### 👤 1. User Application (Mobile)
-A feature-rich Flutter application designed for end-users to manage their wellness journey.
+## 🚀 Dual-Platform Architecture
+
+Velmora is built to scale, providing dedicated experiences for both end-users and administrators:
+
+### 1. 👤 User Application (Mobile)
+A high-end Flutter application designed for couples to manage their wellness journey.
 *   **Intelligent Onboarding**: Tailored experience setup.
 *   **Intimate Wellness**: Guided Kegel routines with progress analytics.
-*   **Connection Games**: Gamified interactions to deepen partner proximity.
+*   **Connection Games**: Gamified interactions ("Truth or Truth") to deepen partner proximity.
 *   **AI Relationship Guru**: Real-time guidance and support.
 
-### 🛠 2. Admin Control Center
-A powerful administrative interface for platform oversight and data management.
-*   **User Lifecycle Management**: Monitor growth and manage accounts.
-*   **Security & Compliance**: Secure password synchronization and audit logs.
-*   **AI Orchestration**: Direct control over the AI's persona and system instructions.
+### 2. 🛠 Admin Control Center (Web)
+A data-driven administrative interface for platform oversight.
+*   **Dashboard Analytics**: Monitor user growth, subscription distribution, and engagement metrics.
+*   **User Lifecycle Management**: Real-time oversight of user profiles and platform access.
+*   **Content Orchestration**: Manage Games, Kegel Exercises, and System Notifications.
+*   **AI Configuration**: Control AI system prompts and behavioral logic.
 
 ---
 
-## 🔄 Application Flow
+## 🔄 Ecosystem Flow
 
-### User Journey
 ```mermaid
-graph TD
-    A[Splash Screen] --> B[Onboarding]
-    B --> C{Authenticated?}
-    C -- No --> D[Login/Signup]
-    C -- Yes --> E[Home Dashboard]
-    E --> F[Kegel Routines]
-    E --> G[Couples Games]
-    E --> H[AI Chat Service]
-    E --> I[Profile & Settings]
+graph LR
+    subgraph "Admin Panel"
+    A[Dashboard] --> B[Manage Content]
+    B --> C[Configure AI]
+    end
+    
+    subgraph "Mobile App"
+    D[User Onboarding] --> E[Daily Routines]
+    E --> F[AI Support]
+    end
+    
+    C -.-> F
+    B -.-> E
 ```
 
 ---
 
-## 📸 User Experience Demo
+## 📱 Mobile App Demo
 
 <div align="center">
 
-| Dashboard & Home | Games & Connection | Kegel Routines |
+| Home & Dashboard | Connection Games | Wellness Progress |
 |:---:|:---:|:---:|
 | <img src="demo/1.png" width="200" /> | <img src="demo/2.png" width="200" /> | <img src="demo/3.png" width="200" /> |
-| **Main Hub** | **Gamification** | **Wellness Progress** |
+| **Main Hub** | **Gamification** | **Guided Routines** |
 
-| Advanced Training | Challenges | Analytics |
+| Levels & Control | Daily Challenges | Interaction Data |
 |:---:|:---:|:---:|
 | <img src="demo/4.png" width="200" /> | <img src="demo/5.png" width="200" /> | <img src="demo/6.png" width="200" /> |
 
-| Community/Social | Personalization | Settings |
+| Community | Personalization | Settings |
 |:---:|:---:|:---:|
 | <img src="demo/7.png" width="200" /> | <img src="demo/8.png" width="200" /> | <img src="demo/9.png" width="200" /> |
 
-| AI Guidance | Future Features |
+| AI Guidance | Future Roadmap |
 |:---:|:---:|
 | <img src="demo/10.png" width="200" /> | <img src="demo/11.png" width="200" /> |
 
@@ -69,35 +85,51 @@ graph TD
 
 ---
 
-## 🏗 Admin Panel
+## 💻 Admin Panel Demo
 
-The Admin Panel allows for real-time monitoring and configuration of the Velmora ecosystem.
+<div align="center">
 
-> [!NOTE]
-> **Admin Demo**: Screenshots of the Admin Dashboard and User Management interface will be added here in the next phase of documentation.
+| Dashboard Overview | User Management | Subscription Data |
+|:---:|:---:|:---:|
+| <img src="demo/12.png" width="400" /> | <img src="demo/13.png" width="400" /> | <img src="demo/14.png" width="400" /> |
+| **Comprehensive Analytics** | **User Oversight** | **Revenue Tracking** |
+
+| AI Configuration | Content Management | Exercise Routines |
+|:---:|:---:|:---:|
+| <img src="demo/15.png" width="400" /> | <img src="demo/16.png" width="400" /> | <img src="demo/17.png" width="400" /> |
+| **System Prompts** | **Games Library** | **Kegel Modules** |
+
+| Notifications | Support Center | System Settings |
+|:---:|:---:|:---:|
+| <img src="demo/18.png" width="400" /> | <img src="demo/19.png" width="400" /> | <img src="demo/20.png" width="400" /> |
+| **Push Management** | **Ticketing System** | **Global Configs** |
+
+| Security Logs |
+|:---:|
+| <img src="demo/21.png" width="400" /> |
+| **System Audits** |
+
+</div>
 
 ---
 
-## 🛠 Technical Setup
+## 🛠 Technical Stack
 
-### Prerequisites
-- **Flutter**: `^3.19.0`
-- **Dart**: `^3.3.0`
-- **Firebase**: Project configured with Auth & Firestore.
+### Mobile (Flutter)
+- **Framework**: `Flutter ^3.19.0`
+- **State Management**: Provider/Riverpod
+- **Backend**: Firebase Auth, Firestore, Cloud Functions
+
+### Admin (Web)
+- **Control**: Real-time management interface
+- **Analytics**: Integrated data visualization
 
 ### Getting Started
-1. **Clone & Install**:
-   ```bash
-   git clone https://github.com/HassanAmeer/velmora_health_app.git
-   flutter pub get
-   ```
-2. **Environment**: Setup your `firebase_options.dart` in the `lib` folder.
-3. **Execution**:
-   ```bash
-   flutter run --flavor development
-   ```
+1. **Clone**: `git clone https://github.com/HassanAmeer/velmora_health_app.git`
+2. **Install**: `flutter pub get`
+3. **Run**: `flutter run`
 
 ---
 
 ## 🔒 License
-Proprietary Software. © 2024 Velmora Team.
+Proprietary Software. © 2024 Velmora Team. All rights reserved.
