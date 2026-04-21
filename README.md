@@ -137,4 +137,4 @@ graph LR
 ---
 
 ## 🔒 License
-Proprietary Software. © 2024 Velmora Team. All rights reserved.
+Proprietary Software. © 2026 Velmora Ai By DevBeast Team. All rights reserved.
