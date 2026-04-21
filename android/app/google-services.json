@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "238336819139",
+    "project_id": "together-wellness",
+    "storage_bucket": "together-wellness.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238336819139:android:580f22982d57b3374f4776",
+        "android_client_info": {
+          "package_name": "com.velmorarelatioship"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "238336819139-1a4cgs92nou6i5bdjeaiv2ol6m9cshdj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDC7TztuV9lOq1089jKduk8wGa5-bL4UuU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "238336819139-1a4cgs92nou6i5bdjeaiv2ol6m9cshdj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "238336819139-9pbtd4lp724dh43u7ebp7f21hos7ntq4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.velmorarelatioship"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

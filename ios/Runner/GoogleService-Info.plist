@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>238336819139-9pbtd4lp724dh43u7ebp7f21hos7ntq4.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.238336819139-9pbtd4lp724dh43u7ebp7f21hos7ntq4</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>238336819139-4vcu9uoltpv01cudbrm00c5beccseup1.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAD1wzT3D5BpYhq0PGDZ1SSWBzFweyhD1w</string>
+	<key>GCM_SENDER_ID</key>
+	<string>238336819139</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.velmorarelatioship</string>
+	<key>PROJECT_ID</key>
+	<string>together-wellness</string>
+	<key>STORAGE_BUCKET</key>
+	<string>together-wellness.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:238336819139:ios:626243ea03a75b044f4776</string>
+</dict>
+</plist>

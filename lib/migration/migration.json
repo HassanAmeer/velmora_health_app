@@ -1,0 +1,872 @@
+{
+    "_meta": {
+        "description": "Couple Wellness App — Firebase Migration Backup with Complete Dummy Data",
+        "version": "2.0.0",
+        "createdAt": "2026-03-07T06:45:00+00:00",
+        "note": "This file contains comprehensive dummy data for all features: Kegel exercises, AI chats, games, subscriptions, and user data. Upload via the 'Migrate New Data' button on the Profile page."
+    },
+    "collections": {
+        "users": {
+            "_description": "Top-level user documents — keyed by UID. Each object is merged into users/{uid}.",
+            "_uploadMode": "merge",
+            "_keyedByUid": true,
+            "documents": [
+                {
+                    "_docIdMode": "currentUser",
+                    "uid": "__CURRENT_USER_UID__",
+                    "email": "__CURRENT_USER_EMAIL__",
+                    "displayName": "Demo User",
+                    "photoUrl": "",
+                    "profilePictureUrl": "",
+                    "isEmailVerified": true,
+                    "subscriptionStatus": "premium",
+                    "subscriptionPlan": "yearly",
+                    "subscriptionStartDate": {
+                        "__type": "Timestamp",
+                        "seconds": 1709769600,
+                        "nanoseconds": 0
+                    },
+                    "subscriptionEndDate": {
+                        "__type": "Timestamp",
+                        "seconds": 1741305600,
+                        "nanoseconds": 0
+                    },
+                    "preferredLanguage": "en",
+                    "favoriteGames": [
+                        "truth_or_truth",
+                        "love_language_quiz"
+                    ],
+                    "featuresAccess": {
+                        "chat": true,
+                        "games": true,
+                        "kegel": true
+                    },
+                    "kegel": {
+                        "weekStreak": 7,
+                        "longestStreak": 14,
+                        "totalCompleted": 25,
+                        "totalMinutes": 125,
+                        "completedDates": [
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1709596800,
+                                "nanoseconds": 0
+                            },
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1709683200,
+                                "nanoseconds": 0
+                            },
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1709769600,
+                                "nanoseconds": 0
+                            },
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1709856000,
+                                "nanoseconds": 0
+                            },
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1709942400,
+                                "nanoseconds": 0
+                            },
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1710028800,
+                                "nanoseconds": 0
+                            },
+                            {
+                                "__type": "Timestamp",
+                                "seconds": 1710115200,
+                                "nanoseconds": 0
+                            }
+                        ],
+                        "dailyGoalPercent": 85.7,
+                        "lastCompletedDate": {
+                            "__type": "Timestamp",
+                            "seconds": 1710115200,
+                            "nanoseconds": 0
+                        },
+                        "lastRoutineType": "Intermediate Routine",
+                        "lastSessionDuration": 8,
+                        "lastSessionDate": {
+                            "__type": "Timestamp",
+                            "seconds": 1710115200,
+                            "nanoseconds": 0
+                        },
+                        "achievements": [
+                            "first_exercise",
+                            "week_warrior"
+                        ],
+                        "planProgress": 7,
+                        "dailyCompletionsToday": 1
+                    },
+                    "trialStartTime": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    },
+                    "trialEndTime": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856000,
+                        "nanoseconds": 0
+                    },
+                    "dailyMessageCount": 2,
+                    "lastMessageDate": "2026-03-07",
+                    "createdAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    },
+                    "lastLoginAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1710115200,
+                        "nanoseconds": 0
+                    },
+                    "updatedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1710115200,
+                        "nanoseconds": 0
+                    }
+                }
+            ]
+        },
+        "chatMessages": {
+            "_description": "Subcollection: users/{uid}/chatMessages. AI chat history for the current user.",
+            "_uploadMode": "set",
+            "_subcollectionOf": "users",
+            "_subcollectionPath": "chatMessages",
+            "documents": [
+                {
+                    "_docId": "msg_001",
+                    "message": "Hello! I'm Velmora AI, your relationship wellness assistant. How can I help you today?",
+                    "isUser": false,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "msg_002",
+                    "message": "Hi! Can you tell me about the benefits of Kegel exercises?",
+                    "isUser": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596860,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "msg_003",
+                    "message": "Kegel exercises strengthen your pelvic floor muscles, which can improve bladder control, enhance sexual health, and support core stability. Our app offers three levels: Beginner (5 min), Intermediate (8 min), and Advanced (12 min). Would you like to start with the Beginner routine?",
+                    "isUser": false,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596920,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "msg_004",
+                    "message": "What games do you have for couples?",
+                    "isUser": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709683200,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "msg_005",
+                    "message": "We have 3 engaging games:\n\n1. **Truth or Truth** (Free) - Answer truthful questions to deepen your connection\n2. **Love Language Quiz** (Premium) - Discover your love languages\n3. **Reflection & Discussion** (Premium) - Meaningful conversations\n\nThe Truth or Truth game is free to try! Premium games unlock with a subscription starting at $3.99/month.",
+                    "isUser": false,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709683260,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "msg_006",
+                    "message": "How does the free trial work?",
+                    "isUser": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1710115200,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "msg_007",
+                    "message": "Great question! Our free trial gives you:\n\n✅ 3 AI chat messages per day\n✅ Access to Truth or Truth game\n✅ Basic Kegel exercises\n\nUpgrade to Premium for:\n🌟 Unlimited AI chats\n🌟 All premium games\n🌟 Advanced Kegel routines\n🌟 Priority support\n\nPlans: Monthly $3.99, Quarterly $9.99, Yearly $29.99",
+                    "isUser": false,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1710115260,
+                        "nanoseconds": 0
+                    }
+                }
+            ]
+        },
+        "kegel_daily_completions": {
+            "_description": "Subcollection: users/{uid}/kegel_daily_completions. Daily completion tracking for admin viewing.",
+            "_uploadMode": "set",
+            "_subcollectionOf": "users",
+            "_subcollectionPath": "kegel_daily_completions",
+            "documents": [
+                {
+                    "_docId": "2026-03-01",
+                    "date": "2026-03-01",
+                    "completions": 1,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "2026-03-02",
+                    "date": "2026-03-02",
+                    "completions": 1,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1709683200,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "2026-03-03",
+                    "date": "2026-03-03",
+                    "completions": 2,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1709769600,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "2026-03-04",
+                    "date": "2026-03-04",
+                    "completions": 1,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856000,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "2026-03-05",
+                    "date": "2026-03-05",
+                    "completions": 1,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1709942400,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "2026-03-06",
+                    "date": "2026-03-06",
+                    "completions": 1,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1710028800,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "_docId": "2026-03-07",
+                    "date": "2026-03-07",
+                    "completions": 1,
+                    "lastUpdated": {
+                        "__type": "Timestamp",
+                        "seconds": 1710115200,
+                        "nanoseconds": 0
+                    }
+                }
+            ]
+        },
+        "kegel_sessions": {
+            "_description": "Subcollection: users/{uid}/kegel_sessions. Detailed session logs for admin viewing.",
+            "_uploadMode": "add",
+            "_subcollectionOf": "users",
+            "_subcollectionPath": "kegel_sessions",
+            "documents": [
+                {
+                    "routineType": "Beginner Routine",
+                    "durationMinutes": 5,
+                    "setsCompleted": 3,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-01"
+                },
+                {
+                    "routineType": "Beginner Routine",
+                    "durationMinutes": 5,
+                    "setsCompleted": 3,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709683200,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-02"
+                },
+                {
+                    "routineType": "Intermediate Routine",
+                    "durationMinutes": 8,
+                    "setsCompleted": 4,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709769600,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-03"
+                },
+                {
+                    "routineType": "Beginner Routine",
+                    "durationMinutes": 5,
+                    "setsCompleted": 3,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709769900,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-03"
+                },
+                {
+                    "routineType": "Intermediate Routine",
+                    "durationMinutes": 8,
+                    "setsCompleted": 4,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856000,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-04"
+                },
+                {
+                    "routineType": "Advanced Routine",
+                    "durationMinutes": 12,
+                    "setsCompleted": 5,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709942400,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-05"
+                },
+                {
+                    "routineType": "Intermediate Routine",
+                    "durationMinutes": 8,
+                    "setsCompleted": 4,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1710028800,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-06"
+                },
+                {
+                    "routineType": "Intermediate Routine",
+                    "durationMinutes": 8,
+                    "setsCompleted": 4,
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1710115200,
+                        "nanoseconds": 0
+                    },
+                    "date": "2026-03-07"
+                }
+            ]
+        },
+        "games": {
+            "_description": "Global games catalog — top-level collection. Uploaded as games/{docId}.",
+            "_uploadMode": "set",
+            "documents": [
+                {
+                    "_docId": "truth_or_truth",
+                    "id": "truth_or_truth",
+                    "title": "Truth or Truth",
+                    "description": "Answer truthful questions about each other to deepen your connection.",
+                    "category": "connection",
+                    "isPremium": false,
+                    "questionCount": 20,
+                    "estimatedMinutes": 15,
+                    "iconName": "favorite",
+                    "colorHex": "#FF4B8D",
+                    "order": 1,
+                    "isActive": true
+                },
+                {
+                    "_docId": "love_language_quiz",
+                    "id": "love_language_quiz",
+                    "title": "Love Language Quiz",
+                    "description": "Discover your and your partner's primary love language.",
+                    "category": "discovery",
+                    "isPremium": true,
+                    "questionCount": 15,
+                    "estimatedMinutes": 10,
+                    "iconName": "psychology",
+                    "colorHex": "#A267FF",
+                    "order": 2,
+                    "isActive": true
+                },
+                {
+                    "_docId": "would_you_rather",
+                    "id": "would_you_rather",
+                    "title": "Would You Rather",
+                    "description": "Fun dilemmas that reveal how you both think and prioritise.",
+                    "category": "fun",
+                    "isPremium": true,
+                    "questionCount": 25,
+                    "estimatedMinutes": 20,
+                    "iconName": "compare_arrows",
+                    "colorHex": "#7B5BFF",
+                    "order": 3,
+                    "isActive": true
+                },
+                {
+                    "_docId": "memory_lane",
+                    "id": "memory_lane",
+                    "title": "Memory Lane",
+                    "description": "Reminisce about your favourite shared memories together.",
+                    "category": "connection",
+                    "isPremium": true,
+                    "questionCount": 18,
+                    "estimatedMinutes": 12,
+                    "iconName": "photo_album",
+                    "colorHex": "#FF6B35",
+                    "order": 4,
+                    "isActive": true
+                },
+                {
+                    "_docId": "future_planning",
+                    "id": "future_planning",
+                    "title": "Future Planning",
+                    "description": "Plan your dreams and future goals as a couple.",
+                    "category": "growth",
+                    "isPremium": true,
+                    "questionCount": 12,
+                    "estimatedMinutes": 20,
+                    "iconName": "rocket_launch",
+                    "colorHex": "#2C9C6A",
+                    "order": 5,
+                    "isActive": true
+                }
+            ]
+        },
+        "game_questions": {
+            "_description": "All game questions — top-level collection. Uploaded as game_questions/{docId}.",
+            "_uploadMode": "set",
+            "documents": [
+                {
+                    "_docId": "tot_q1",
+                    "gameType": "truth_or_truth",
+                    "question": "What is your happiest memory of us together?",
+                    "order": 1,
+                    "category": "memories"
+                },
+                {
+                    "_docId": "tot_q2",
+                    "gameType": "truth_or_truth",
+                    "question": "What first attracted you to me?",
+                    "order": 2,
+                    "category": "attraction"
+                },
+                {
+                    "_docId": "tot_q3",
+                    "gameType": "truth_or_truth",
+                    "question": "What is one thing I do that always makes you smile?",
+                    "order": 3,
+                    "category": "appreciation"
+                },
+                {
+                    "_docId": "tot_q4",
+                    "gameType": "truth_or_truth",
+                    "question": "What is your favourite thing about our relationship?",
+                    "order": 4,
+                    "category": "relationship"
+                },
+                {
+                    "_docId": "tot_q5",
+                    "gameType": "truth_or_truth",
+                    "question": "If you could change one thing about how we communicate, what would it be?",
+                    "order": 5,
+                    "category": "growth"
+                },
+                {
+                    "_docId": "tot_q6",
+                    "gameType": "truth_or_truth",
+                    "question": "What dream do you most want us to achieve together?",
+                    "order": 6,
+                    "category": "future"
+                },
+                {
+                    "_docId": "tot_q7",
+                    "gameType": "truth_or_truth",
+                    "question": "When did you know you were in love with me?",
+                    "order": 7,
+                    "category": "love"
+                },
+                {
+                    "_docId": "tot_q8",
+                    "gameType": "truth_or_truth",
+                    "question": "What is one thing you wish I understood better about you?",
+                    "order": 8,
+                    "category": "understanding"
+                },
+                {
+                    "_docId": "tot_q9",
+                    "gameType": "truth_or_truth",
+                    "question": "What is the most romantic thing I have ever done for you?",
+                    "order": 9,
+                    "category": "romance"
+                },
+                {
+                    "_docId": "tot_q10",
+                    "gameType": "truth_or_truth",
+                    "question": "Where do you see us in 10 years?",
+                    "order": 10,
+                    "category": "future"
+                },
+                {
+                    "_docId": "tot_q11",
+                    "gameType": "truth_or_truth",
+                    "question": "What is something you've never told me before?",
+                    "order": 11,
+                    "category": "secrets"
+                },
+                {
+                    "_docId": "tot_q12",
+                    "gameType": "truth_or_truth",
+                    "question": "What song reminds you of us?",
+                    "order": 12,
+                    "category": "connection"
+                },
+                {
+                    "_docId": "tot_q13",
+                    "gameType": "truth_or_truth",
+                    "question": "What is one thing I do that sometimes annoys you?",
+                    "order": 13,
+                    "category": "honesty"
+                },
+                {
+                    "_docId": "tot_q14",
+                    "gameType": "truth_or_truth",
+                    "question": "How do you feel most loved by me?",
+                    "order": 14,
+                    "category": "love_language"
+                },
+                {
+                    "_docId": "tot_q15",
+                    "gameType": "truth_or_truth",
+                    "question": "What is your favourite date we've been on?",
+                    "order": 15,
+                    "category": "memories"
+                },
+                {
+                    "_docId": "tot_q16",
+                    "gameType": "truth_or_truth",
+                    "question": "If we could travel anywhere together, where would it be?",
+                    "order": 16,
+                    "category": "adventure"
+                },
+                {
+                    "_docId": "tot_q17",
+                    "gameType": "truth_or_truth",
+                    "question": "What do you appreciate most about how I support you?",
+                    "order": 17,
+                    "category": "support"
+                },
+                {
+                    "_docId": "tot_q18",
+                    "gameType": "truth_or_truth",
+                    "question": "What is one new thing you'd like us to try together?",
+                    "order": 18,
+                    "category": "growth"
+                },
+                {
+                    "_docId": "tot_q19",
+                    "gameType": "truth_or_truth",
+                    "question": "What is your love language and do you feel I speak it?",
+                    "order": 19,
+                    "category": "love_language"
+                },
+                {
+                    "_docId": "tot_q20",
+                    "gameType": "truth_or_truth",
+                    "question": "What is something about me you fell in love with that you still love today?",
+                    "order": 20,
+                    "category": "love"
+                },
+                {
+                    "_docId": "ll_q1",
+                    "gameType": "love_language_quiz",
+                    "question": "When your partner is kind to you verbally, how does it make you feel?",
+                    "order": 1,
+                    "options": [
+                        "Very loved",
+                        "Appreciated",
+                        "Neutral",
+                        "Actions matter more"
+                    ],
+                    "category": "words_of_affirmation"
+                },
+                {
+                    "_docId": "ll_q2",
+                    "gameType": "love_language_quiz",
+                    "question": "How important is it to you that your partner spends undivided time with you?",
+                    "order": 2,
+                    "options": [
+                        "Extremely important",
+                        "Very important",
+                        "Somewhat important",
+                        "Not very important"
+                    ],
+                    "category": "quality_time"
+                },
+                {
+                    "_docId": "ll_q3",
+                    "gameType": "love_language_quiz",
+                    "question": "How do you feel when your partner gives you a thoughtful gift?",
+                    "order": 3,
+                    "options": [
+                        "Deeply loved",
+                        "Happy",
+                        "Nice gesture",
+                        "Gifts aren't my thing"
+                    ],
+                    "category": "receiving_gifts"
+                },
+                {
+                    "_docId": "ll_q4",
+                    "gameType": "love_language_quiz",
+                    "question": "When your partner helps you with tasks or chores, how does it make you feel?",
+                    "order": 4,
+                    "options": [
+                        "Very loved and supported",
+                        "Grateful",
+                        "Nice but not necessary",
+                        "I prefer other ways"
+                    ],
+                    "category": "acts_of_service"
+                },
+                {
+                    "_docId": "ll_q5",
+                    "gameType": "love_language_quiz",
+                    "question": "How do you feel about physical affection like hugs and holding hands?",
+                    "order": 5,
+                    "options": [
+                        "It's essential to me",
+                        "I enjoy it a lot",
+                        "Sometimes nice",
+                        "I prefer other forms of love"
+                    ],
+                    "category": "physical_touch"
+                },
+                {
+                    "_docId": "wyr_q1",
+                    "gameType": "would_you_rather",
+                    "question": "Would you rather have a spontaneous adventure or a carefully planned romantic getaway?",
+                    "order": 1,
+                    "optionA": "Spontaneous adventure",
+                    "optionB": "Carefully planned getaway"
+                },
+                {
+                    "_docId": "wyr_q2",
+                    "gameType": "would_you_rather",
+                    "question": "Would you rather have breakfast in bed every day or a surprise date night every week?",
+                    "order": 2,
+                    "optionA": "Breakfast in bed daily",
+                    "optionB": "Weekly surprise date night"
+                },
+                {
+                    "_docId": "wyr_q3",
+                    "gameType": "would_you_rather",
+                    "question": "Would you rather communicate only through love letters or only through voice messages?",
+                    "order": 3,
+                    "optionA": "Love letters only",
+                    "optionB": "Voice messages only"
+                },
+                {
+                    "_docId": "wyr_q4",
+                    "gameType": "would_you_rather",
+                    "question": "Would you rather live in a cosy cottage in the countryside or a penthouse in the city?",
+                    "order": 4,
+                    "optionA": "Cosy countryside cottage",
+                    "optionB": "City penthouse"
+                },
+                {
+                    "_docId": "wyr_q5",
+                    "gameType": "would_you_rather",
+                    "question": "Would you rather know exactly what your partner is thinking or have a never-ending source of surprises?",
+                    "order": 5,
+                    "optionA": "Know their thoughts",
+                    "optionB": "Endless surprises"
+                }
+            ]
+        },
+        "user_game_progress": {
+            "_description": "Per-user game progress — keyed under user_game_progress/{uid}.",
+            "_uploadMode": "set",
+            "_keyedByUid": true,
+            "documents": [
+                {
+                    "_docIdMode": "currentUser",
+                    "userId": "__CURRENT_USER_UID__",
+                    "playedGames": [
+                        "truth_or_truth",
+                        "love_language_quiz"
+                    ],
+                    "sessions": [
+                        {
+                            "gameId": "truth_or_truth",
+                            "playedAt": {
+                                "__type": "Timestamp",
+                                "seconds": 1709683200,
+                                "nanoseconds": 0
+                            },
+                            "questionsAnswered": 10,
+                            "completed": false
+                        },
+                        {
+                            "gameId": "love_language_quiz",
+                            "playedAt": {
+                                "__type": "Timestamp",
+                                "seconds": 1709856000,
+                                "nanoseconds": 0
+                            },
+                            "questionsAnswered": 5,
+                            "completed": true,
+                            "result": "Quality Time"
+                        }
+                    ],
+                    "totalScore": 150,
+                    "favoriteGames": [
+                        "truth_or_truth"
+                    ],
+                    "createdAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    },
+                    "updatedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856000,
+                        "nanoseconds": 0
+                    }
+                }
+            ]
+        },
+        "user_games": {
+            "_description": "Individual game sessions — top-level collection with userId field.",
+            "_uploadMode": "add",
+            "documents": [
+                {
+                    "userId": "__CURRENT_USER_UID__",
+                    "gameId": "truth_or_truth",
+                    "gameTitle": "Truth or Truth",
+                    "startedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709683200,
+                        "nanoseconds": 0
+                    },
+                    "completedAt": null,
+                    "questionsAnswered": 10,
+                    "totalQuestions": 20,
+                    "isCompleted": false,
+                    "answers": []
+                },
+                {
+                    "userId": "__CURRENT_USER_UID__",
+                    "gameId": "love_language_quiz",
+                    "gameTitle": "Love Language Quiz",
+                    "startedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856000,
+                        "nanoseconds": 0
+                    },
+                    "completedAt": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856600,
+                        "nanoseconds": 0
+                    },
+                    "questionsAnswered": 5,
+                    "totalQuestions": 5,
+                    "isCompleted": true,
+                    "result": "Quality Time",
+                    "answers": []
+                }
+            ]
+        },
+        "notifications": {
+            "_description": "Subcollection: users/{uid}/notifications. In-app notifications for the user.",
+            "_uploadMode": "add",
+            "_subcollectionOf": "users",
+            "_subcollectionPath": "notifications",
+            "documents": [
+                {
+                    "title": "Welcome to Velmora AI!",
+                    "body": "We're so glad you're here. Let's strengthen your relationship together.",
+                    "type": "system",
+                    "isRead": false,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709596800,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "title": "First Kegel Routine Complete",
+                    "body": "Great job completing your first Kegel routine! Keep up the consistency.",
+                    "type": "kegel",
+                    "isRead": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709683200,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "title": "Game Completed",
+                    "body": "You and your partner just finished Truth or Truth. Did you learn something new?",
+                    "type": "game",
+                    "isRead": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709769600,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "title": "New AI Chat Insight",
+                    "body": "Your relationship companion has new personalized advice based on your recent activity.",
+                    "type": "ai_chat",
+                    "isRead": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709856000,
+                        "nanoseconds": 0
+                    }
+                },
+                {
+                    "title": "Premium Subscription Activated",
+                    "body": "Thank you for upgrading! You now have full access to all premium features and games.",
+                    "type": "subscription",
+                    "isRead": true,
+                    "timestamp": {
+                        "__type": "Timestamp",
+                        "seconds": 1709942400,
+                        "nanoseconds": 0
+                    }
+                }
+            ]
+        }
+    }
+}
