@@ -64,20 +64,20 @@ graph LR
 
 <div align="center">
 
-| Home & Dashboard | Connection Games | Wellness Progress |
+| Home & Dashboard | Connection Games | Games Progress |
 |:---:|:---:|:---:|
 | <img src="demo/1.png" width="200" /> | <img src="demo/2.png" width="200" /> | <img src="demo/3.png" width="200" /> |
 | **Main Hub** | **Gamification** | **Guided Routines** |
 
-| Levels & Control | Daily Challenges | Interaction Data |
+| Kegel Games | Kegel Games Details | Kegel Progress |
 |:---:|:---:|:---:|
 | <img src="demo/4.png" width="200" /> | <img src="demo/5.png" width="200" /> | <img src="demo/6.png" width="200" /> |
 
-| Community | Personalization | Settings |
+| Kegel Calender | Ai Guidance | Settings |
 |:---:|:---:|:---:|
 | <img src="demo/7.png" width="200" /> | <img src="demo/8.png" width="200" /> | <img src="demo/9.png" width="200" /> |
 
-| AI Guidance | Future Roadmap |
+| Subscription | Notifcations |
 |:---:|:---:|
 | <img src="demo/10.png" width="200" /> | <img src="demo/11.png" width="200" /> |
 
@@ -89,22 +89,23 @@ graph LR
 
 <div align="center">
 
-| Dashboard Overview | User Management | Subscription Data |
+
+| Home & Dashboard | Users | Users Edit |
 |:---:|:---:|:---:|
 | <img src="demo/12.png" width="400" /> | <img src="demo/13.png" width="400" /> | <img src="demo/14.png" width="400" /> |
 | **Comprehensive Analytics** | **User Oversight** | **Revenue Tracking** |
 
-| AI Configuration | Content Management | Exercise Routines |
+| Subscription | AI Configuration | Games Library |
 |:---:|:---:|:---:|
 | <img src="demo/15.png" width="400" /> | <img src="demo/16.png" width="400" /> | <img src="demo/17.png" width="400" /> |
 | **System Prompts** | **Games Library** | **Kegel Modules** |
 
-| Notifications | Support Center | System Settings |
+| Kegel Modules | Notifications management | Support and Help |
 |:---:|:---:|:---:|
 | <img src="demo/18.png" width="400" /> | <img src="demo/19.png" width="400" /> | <img src="demo/20.png" width="400" /> |
 | **Push Management** | **Ticketing System** | **Global Configs** |
 
-| Security Logs |
+| System Settings |
 |:---:|
 | <img src="demo/21.png" width="400" /> |
 | **System Audits** |
