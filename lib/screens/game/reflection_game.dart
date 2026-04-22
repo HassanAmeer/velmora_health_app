@@ -183,7 +183,6 @@ class _ReflectionGameScreenState extends State<ReflectionGameScreen> {
           _completeGame();
         }
       }
-
     });
     VibrationService.vibration();
     controller.clear();
@@ -440,54 +439,198 @@ class _ReflectionGameScreenState extends State<ReflectionGameScreen> {
 
   Widget _buildCompletionScreen(AppLocalizations l10n) {
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.gameComplete)),
+      backgroundColor: const Color(0xFFF9F9FF),
+      appBar: AppBar(
+        title: Text(l10n.gameComplete),
+        backgroundColor: Colors.purple.shade400,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(24.adaptSize),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: 20.h),
-            Icon(Icons.favorite, size: 18.fSize, color: Colors.red),
-            SizedBox(height: 20.h),
+            Icon(
+              Icons.favorite,
+              size: 80.adaptSize,
+              color: Colors.red.shade400,
+            ),
+            SizedBox(height: 24.h),
             Text(
               l10n.congratulations,
-              style: TextStyle(fontSize: 18.fSize, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 28.fSize,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1F2933),
+              ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 12.h),
             Text(
               l10n.gameCompletedReflection,
-              style: TextStyle(fontSize: 18.fSize, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 16.fSize, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 32.h),
+
             Text(
-              '${l10n.questionsAnswered} ${_questions.length} ${l10n.questionsTogether}',
-              style: TextStyle(fontSize: 18.fSize, color: Colors.grey[700]),
+              'Reflection Summary',
+              style: TextStyle(
+                fontSize: 20.fSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple.shade900,
+              ),
               textAlign: TextAlign.center,
             ),
+            SizedBox(height: 16.h),
+
+            // Questions and Answers List
+            ...List.generate(_questions.length, (index) {
+              final question = _questions[index];
+              final player1Answer = _answers[index]?['player1'] ?? 'No answer';
+              final player2Answer = _answers[index]?['player2'] ?? 'No answer';
+
+              return Container(
+                margin: EdgeInsets.only(bottom: 20.h),
+                padding: EdgeInsets.all(20.adaptSize),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Question ${index + 1}',
+                      style: TextStyle(
+                        fontSize: 12.fSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple.shade300,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      question.getLocalizedQuestion(
+                        Localizations.localeOf(context).languageCode,
+                      ),
+                      style: TextStyle(
+                        fontSize: 17.fSize,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1F2933),
+                        height: 1.3,
+                      ),
+                    ),
+                    SizedBox(height: 20.h),
+
+                    // Player 1 Answer
+                    _buildAnswerRow(
+                      _player1Name,
+                      player1Answer,
+                      Colors.blue.shade500,
+                    ),
+                    SizedBox(height: 12.h),
+                    // Player 2 Answer
+                    _buildAnswerRow(
+                      _player2Name,
+                      player2Answer,
+                      Colors.pink.shade400,
+                    ),
+                  ],
+                ),
+              );
+            }),
+
             SizedBox(height: 20.h),
             ElevatedButton(
               onPressed: _restartGame,
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 20.h),
+                backgroundColor: Colors.purple.shade400,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: Text(l10n.playAgain, style: TextStyle(fontSize: 18.fSize)),
+              child: Text(
+                l10n.playAgain,
+                style: TextStyle(
+                  fontSize: 18.fSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 12.h),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 20.h),
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: Text(
                 l10n.backToGames,
-                style: TextStyle(fontSize: 18.fSize),
+                style: TextStyle(
+                  fontSize: 18.fSize,
+                  color: Colors.purple.shade700,
+                ),
+              ),
+            ),
+            SizedBox(height: 40.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnswerRow(String name, String answer, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 14.fSize,
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
             ),
           ],
         ),
-      ),
+        SizedBox(height: 4.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(12.adaptSize),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            answer,
+            style: TextStyle(
+              fontSize: 15.fSize,
+              color: Colors.grey.shade800,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
