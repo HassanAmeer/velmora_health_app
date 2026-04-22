@@ -24,6 +24,6 @@ export const sendNotificationToFirestore = async (uid: string, data: Notificatio
 // Recommended approach: Add a document to a 'notification_triggers' collection
 // and let a Firebase Cloud Function handle the actual FCM sending.
 export const triggerFCM = async (token: string, title: string, body: string) => {
-    console.log(`FCM trigger logic for token: ${token}`);
+    console.log(`FCM trigger logic for token: ${token} - ${title}: ${body}`);
     // implementation would go here (e.g., calling a Cloud Function)
 };

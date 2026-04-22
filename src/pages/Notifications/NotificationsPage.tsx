@@ -173,7 +173,7 @@ const NotificationsPage: React.FC = () => {
             } else {
                 // Send to specific tokens
                 const validTokens = fcmTokens.filter(t => t && t.length > 10);
-                const pushPromises = validTokens.map(token => 
+                const pushPromises = validTokens.map(token =>
                     sendFCMNotification({
                         recipientToken: token,
                         title: title.trim(),
@@ -204,11 +204,11 @@ const NotificationsPage: React.FC = () => {
             await addDoc(collection(db, 'notification_history'), historyData);
 
             let successMsg = `Notification saved to ${targetUserIds.length} user dashboards.`;
-            if (fcmTokens.length > 0) {
-                successMsg += ` (Identified ${fcmTokens.length} devices for push notifications)`;
+            if (fcmSentCount > 0) {
+                successMsg += ` (Delivered ${fcmSentCount} push notifications)`;
+            } else if (targetType !== 'all') {
+                successMsg += " (Note: No devices found for push notifications.)";
             }
-
-            setSuccess(successMsg);
 
             // Reset form
             setTitle('');
@@ -428,55 +428,55 @@ const NotificationsPage: React.FC = () => {
                                             borderColor: 'grey.200',
                                         }}
                                     >
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                    <Typography variant="subtitle2" fontWeight="bold">
-                                                        {item.title}
-                                                    </Typography>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <Chip
-                                                            label={item.type}
-                                                            size="small"
-                                                            sx={{
-                                                                bgcolor: notificationTypes.find(t => t.value === item.type)?.color || '#999',
-                                                                color: 'white',
-                                                                fontSize: '10px',
-                                                                height: 20
-                                                            }}
-                                                        />
-                                                        <Tooltip title="Delete History">
-                                                            <IconButton 
-                                                                size="small" 
-                                                                color="error"
-                                                                onClick={() => handleDeleteHistory(item.id)}
-                                                                disabled={deletingId === item.id}
-                                                            >
-                                                                {deletingId === item.id ? (
-                                                                    <CircularProgress size={18} color="inherit" />
-                                                                ) : (
-                                                                    <Delete sx={{ fontSize: 18 }} />
-                                                                )}
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    </Box>
-                                                </Box>
-                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                                    {item.body}
-                                                </Typography>
-                                                {item.targetUserNames && item.targetUserNames.length > 0 && (
-                                                    <Typography variant="caption" display="block" sx={{ mb: 1, color: 'primary.main', fontStyle: 'italic' }}>
-                                                        Sent to: {item.targetUserNames.join(', ')}
-                                                    </Typography>
-                                                )}
-                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {formatDate(item.sentAt)}
-                                                    </Typography>
-                                                    <Chip
-                                                        label={item.targetType === 'all' ? 'All Users' : `${item.recipientCount || 0} users`}
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                            <Typography variant="subtitle2" fontWeight="bold">
+                                                {item.title}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <Chip
+                                                    label={item.type}
+                                                    size="small"
+                                                    sx={{
+                                                        bgcolor: notificationTypes.find(t => t.value === item.type)?.color || '#999',
+                                                        color: 'white',
+                                                        fontSize: '10px',
+                                                        height: 20
+                                                    }}
+                                                />
+                                                <Tooltip title="Delete History">
+                                                    <IconButton
                                                         size="small"
-                                                        variant="outlined"
-                                                    />
-                                                </Box>
+                                                        color="error"
+                                                        onClick={() => handleDeleteHistory(item.id)}
+                                                        disabled={deletingId === item.id}
+                                                    >
+                                                        {deletingId === item.id ? (
+                                                            <CircularProgress size={18} color="inherit" />
+                                                        ) : (
+                                                            <Delete sx={{ fontSize: 18 }} />
+                                                        )}
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
+                                        </Box>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                            {item.body}
+                                        </Typography>
+                                        {item.targetUserNames && item.targetUserNames.length > 0 && (
+                                            <Typography variant="caption" display="block" sx={{ mb: 1, color: 'primary.main', fontStyle: 'italic' }}>
+                                                Sent to: {item.targetUserNames.join(', ')}
+                                            </Typography>
+                                        )}
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {formatDate(item.sentAt)}
+                                            </Typography>
+                                            <Chip
+                                                label={item.targetType === 'all' ? 'All Users' : `${item.recipientCount || 0} users`}
+                                                size="small"
+                                                variant="outlined"
+                                            />
+                                        </Box>
                                     </Box>
                                 ))}
                             </Box>

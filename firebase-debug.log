@@ -1,0 +1,76 @@
+[debug] [2026-04-22T06:33:44.389Z] ----------------------------------------------------------------------
+[debug] [2026-04-22T06:33:44.400Z] Command:       /usr/local/bin/node /Users/mac/.npm-global/bin/firebase deploy
+[debug] [2026-04-22T06:33:44.400Z] CLI Version:   15.14.0
+[debug] [2026-04-22T06:33:44.400Z] Platform:      darwin
+[debug] [2026-04-22T06:33:44.401Z] Node Version:  v22.15.0
+[debug] [2026-04-22T06:33:44.401Z] Time:          Wed Apr 22 2026 11:33:44 GMT+0500 (Pakistan Standard Time)
+[debug] [2026-04-22T06:33:44.401Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-22T06:33:44.403Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-22T06:33:47.060Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-22T06:33:47.060Z] > authorizing via signed-in user (hasanameer386@gmail.com)
+[debug] [2026-04-22T06:33:47.060Z] [iam] checking project together-wellness for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-22T06:33:47.061Z] Checked if tokens are valid: false, expires at: 1776392985987
+[debug] [2026-04-22T06:33:47.061Z] Checked if tokens are valid: false, expires at: 1776392985987
+[debug] [2026-04-22T06:33:47.061Z] > refreshing access token with scopes: []
+[debug] [2026-04-22T06:33:47.065Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-22T06:33:47.065Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-22T06:33:47.500Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-22T06:33:47.500Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-22T06:33:47.551Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/together-wellness:testIamPermissions [none]
+[debug] [2026-04-22T06:33:47.551Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/together-wellness:testIamPermissions  x-goog-user-project=together-wellness
+[debug] [2026-04-22T06:33:47.551Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/together-wellness:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-22T06:33:51.401Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-22T06:33:51.401Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-22T06:33:51.455Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/together-wellness:testIamPermissions 200
+[debug] [2026-04-22T06:33:51.455Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/together-wellness:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-22T06:33:51.456Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:51.456Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:51.456Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/together-wellness [none]
+[debug] [2026-04-22T06:33:52.096Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/together-wellness 200
+[debug] [2026-04-22T06:33:52.096Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/together-wellness {"projectId":"together-wellness","projectNumber":"238336819139","displayName":"together Wellness","name":"projects/together-wellness","resources":{"hostingSite":"together-wellness"},"state":"ACTIVE","etag":"1_c46fc5ef-15f9-457d-bc82-a18300470603"}
+[info] 
+[info] === Deploying to 'together-wellness'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-04-22T06:33:52.103Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:52.103Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:52.103Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/together-wellness/versions [none]
+[debug] [2026-04-22T06:33:52.103Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/together-wellness/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-04-22T06:33:55.251Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/together-wellness/versions 200
+[debug] [2026-04-22T06:33:55.251Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/together-wellness/versions {"name":"projects/238336819139/sites/together-wellness/versions/db06fda7ccdd59db","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[together-wellness]: beginning deploy... 
+[info] i  hosting[together-wellness]: found 6 files in dist 
+[debug] [2026-04-22T06:33:55.267Z] [hosting] uploading with 200 concurrency
+[debug] [2026-04-22T06:33:55.328Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:55.329Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:55.330Z] [hosting] hash cache [ZGlzdA] stored for 6 files
+[debug] [2026-04-22T06:33:55.330Z] [hosting][hash queue][FINAL] {"max":56,"min":5,"avg":14.333333333333334,"active":0,"complete":6,"success":6,"errored":0,"retried":0,"total":6,"elapsed":59}
+[debug] [2026-04-22T06:33:55.330Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/238336819139/sites/together-wellness/versions/db06fda7ccdd59db:populateFiles [none]
+[debug] [2026-04-22T06:33:55.330Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/238336819139/sites/together-wellness/versions/db06fda7ccdd59db:populateFiles {"files":{"/index.html":"33ff4281a50b2e5cc3325e5ae2e15e2a546f5235fa988e49a12076ed141fa3f0","/favicon-16x16.png":"d7055db192323decde474d91f5af978b71d90e717f75b1003a7c82588540d4f3","/favicon-32x32.png":"4c23111abcb9c72b63762101c3df9e314fb3475eb333bea4fb5b2511e2c88c30","/assets/index-CqazuH1O.css":"7a5af9cf269b3466113b7e221abee417ea6b4703071fa65ea5ea560463a3c065","/favicon.ico":"d75175185e10fc16554d46c9279f0eab2aa05eebb09f13e01e9015e66570667a","/assets/index-irSGfgvv.js":"36de7d845e52e84fdd435b0d4ec8efac9286df3e6965aa8999a29ad53e70ccbe"}}
+[debug] [2026-04-22T06:33:56.284Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/238336819139/sites/together-wellness/versions/db06fda7ccdd59db:populateFiles 200
+[debug] [2026-04-22T06:33:56.285Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/238336819139/sites/together-wellness/versions/db06fda7ccdd59db:populateFiles {"uploadRequiredHashes":["d75175185e10fc16554d46c9279f0eab2aa05eebb09f13e01e9015e66570667a","36de7d845e52e84fdd435b0d4ec8efac9286df3e6965aa8999a29ad53e70ccbe","33ff4281a50b2e5cc3325e5ae2e15e2a546f5235fa988e49a12076ed141fa3f0","7a5af9cf269b3466113b7e221abee417ea6b4703071fa65ea5ea560463a3c065"],"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files"}
+[debug] [2026-04-22T06:33:56.285Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.285Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.286Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.286Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.286Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.286Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.286Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.286Z] Checked if tokens are valid: true, expires at: 1776843226500
+[debug] [2026-04-22T06:33:56.287Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/d75175185e10fc16554d46c9279f0eab2aa05eebb09f13e01e9015e66570667a [none]
+[debug] [2026-04-22T06:33:56.287Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/d75175185e10fc16554d46c9279f0eab2aa05eebb09f13e01e9015e66570667a [stream]
+[debug] [2026-04-22T06:33:56.288Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/36de7d845e52e84fdd435b0d4ec8efac9286df3e6965aa8999a29ad53e70ccbe [none]
+[debug] [2026-04-22T06:33:56.288Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/36de7d845e52e84fdd435b0d4ec8efac9286df3e6965aa8999a29ad53e70ccbe [stream]
+[debug] [2026-04-22T06:33:56.290Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/33ff4281a50b2e5cc3325e5ae2e15e2a546f5235fa988e49a12076ed141fa3f0 [none]
+[debug] [2026-04-22T06:33:56.290Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/33ff4281a50b2e5cc3325e5ae2e15e2a546f5235fa988e49a12076ed141fa3f0 [stream]
+[debug] [2026-04-22T06:33:56.292Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/7a5af9cf269b3466113b7e221abee417ea6b4703071fa65ea5ea560463a3c065 [none]
+[debug] [2026-04-22T06:33:56.292Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/7a5af9cf269b3466113b7e221abee417ea6b4703071fa65ea5ea560463a3c065 [stream]
+[debug] [2026-04-22T06:33:56.293Z] [hosting][populate queue][FINAL] {"max":958,"min":958,"avg":958,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":965}
+[debug] [2026-04-22T06:33:56.293Z] [hosting] uploads queued: 4
+[debug] [2026-04-22T06:33:58.044Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/7a5af9cf269b3466113b7e221abee417ea6b4703071fa65ea5ea560463a3c065 200
+[debug] [2026-04-22T06:33:58.045Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/7a5af9cf269b3466113b7e221abee417ea6b4703071fa65ea5ea560463a3c065 [stream]
+[debug] [2026-04-22T06:33:58.758Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/33ff4281a50b2e5cc3325e5ae2e15e2a546f5235fa988e49a12076ed141fa3f0 200
+[debug] [2026-04-22T06:33:58.758Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/33ff4281a50b2e5cc3325e5ae2e15e2a546f5235fa988e49a12076ed141fa3f0 [stream]
+[debug] [2026-04-22T06:33:58.759Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/d75175185e10fc16554d46c9279f0eab2aa05eebb09f13e01e9015e66570667a 200
+[debug] [2026-04-22T06:33:58.759Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/together-wellness/versions/db06fda7ccdd59db/files/d75175185e10fc16554d46c9279f0eab2aa05eebb09f13e01e9015e66570667a [stream]
