@@ -15,6 +15,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 
+import '../../services/get_live_notification.dart';
+
 class HomeScreen extends StatefulWidget {
   final ValueChanged<int>? onNavigateToTab;
 
@@ -40,6 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    Notify().requestNotifyPermissionF(); // for permssions
+    Notify().listenBackgroundNotification();
+    Notify().listenNotificationOnOpendApp();
+    Notify().onClickFcmNotifi();
+    Notify().getTokenF(context);
     _loadUserData();
   }
 

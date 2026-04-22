@@ -1062,8 +1062,9 @@ class _PremiumScreenState extends State<PremiumScreen>
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         _snack('${AppLocalizations.of(context).error}: $e', color: Colors.red);
+      }
     } finally {
       if (mounted) setState(() => _isPurchasing = false);
     }
@@ -1105,8 +1106,9 @@ class _PremiumScreenState extends State<PremiumScreen>
         throw Exception(AppLocalizations.of(context).failedToInitiatePurchase);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         _snack('${AppLocalizations.of(context).error}: $e', color: Colors.red);
+      }
     } finally {
       if (mounted) setState(() => _isPurchasing = false);
     }
@@ -1117,25 +1119,28 @@ class _PremiumScreenState extends State<PremiumScreen>
       await _subscriptionService.restorePurchases();
       if (mounted) _snack(AppLocalizations.of(context).checkingPurchases);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         _snack(
           '${AppLocalizations.of(context).errorRestoringPurchases}: $e',
           color: Colors.red,
         );
+      }
     }
   }
 
   /// ✅ APPLE: Must send user to App Store to manage/cancel — no custom flow.
   Future<void> _manageSubscription() async {
     final uri = Uri.parse('https://apps.apple.com/account/subscriptions');
-    if (await canLaunchUrl(uri))
+    if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri))
+    if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _snack(String msg, {Color? color}) {

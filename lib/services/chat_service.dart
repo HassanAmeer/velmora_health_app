@@ -174,4 +174,25 @@ class ChatService {
       throw 'Failed to delete message: $e';
     }
   }
+
+  /// Clear all chat messages
+  Future<void> clearChatHistory() async {
+    if (currentUserId == null) return;
+
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('chatMessages')
+          .get();
+
+      final batch = _firestore.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      throw 'Failed to clear chat history: $e';
+    }
+  }
 }

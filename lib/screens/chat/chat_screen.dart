@@ -117,6 +117,48 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _clearChat() async {
+    final l10n = AppLocalizations.of(context);
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.translate('clear_chat') ?? 'Clear Chat'),
+        content: Text(
+          l10n.translate('clear_chat_confirm') ??
+              'Are you sure you want to clear your chat history?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.translate('cancel') ?? 'Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.translate('delete') ?? 'Delete',
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _chatService.clearChatHistory();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${l10n.translate('error')}: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PremiumFeatureGate(
@@ -183,6 +225,16 @@ class _ChatScreenState extends State<ChatScreen> {
                           Navigator.pop(context);
                         },
                       ),
+                      actions: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_sweep,
+                            color: Colors.white,
+                          ),
+                          tooltip: l10n.translate('clear_chat') ?? 'Clear Chat',
+                          onPressed: _clearChat,
+                        ),
+                      ],
                       elevation: 0,
                       scrolledUnderElevation: 0,
                       shape: const RoundedRectangleBorder(

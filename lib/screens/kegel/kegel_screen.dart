@@ -90,6 +90,14 @@ class _KegelScreenState extends State<KegelScreen> {
       // Filter out inactive exercises
       exercises = exercises.where((e) => e['isActive'] == true).toList();
 
+      // Sort exercises: beginner -> intermediate -> advanced
+      final orderMap = {'beginner': 0, 'intermediate': 1, 'advanced': 2};
+      exercises.sort((a, b) {
+        final orderA = orderMap[a['id']] ?? 99;
+        final orderB = orderMap[b['id']] ?? 99;
+        return orderA.compareTo(orderB);
+      });
+
       return exercises;
     } catch (e) {
       // If Firestore fails, use defaults

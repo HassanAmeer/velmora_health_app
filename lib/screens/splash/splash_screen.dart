@@ -4,6 +4,8 @@ import 'package:velmora/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../services/get_live_notification.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 

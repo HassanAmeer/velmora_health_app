@@ -248,6 +248,8 @@ class AppLocalizations {
       'ai_error_message':
           "I'm sorry, I'm having trouble connecting to my AI brain right now. Please contact the Admin.",
       'failed_to_delete_message': 'Failed to delete message',
+      'clear_chat': 'Clear Chat',
+      'clear_chat_confirm': 'Are you sure you want to clear your chat history?',
 
       // Authentication
       'sign_in': 'Sign In',
@@ -721,6 +723,8 @@ class AppLocalizations {
       'ai_error_message':
           'معذرة، أواجه مشكلة في الاتصال بذكائي الاصطناعي الآن. يرجى الاتصال بالمسؤول.',
       'failed_to_delete_message': 'فشل حذف الرسالة',
+      'clear_chat': 'مسح الدردشة',
+      'clear_chat_confirm': 'هل أنت متأكد أنك تريد مسح سجل الدردشة؟',
 
       // Authentication
       'sign_in': 'تسجيل الدخول',
@@ -1327,6 +1331,8 @@ class AppLocalizations {
       'ai_error_message':
           "Désolé, j'ai du mal à me connecter à mon cerveau IA en ce moment. Veuillez contacter l'administrateur.",
       'failed_to_delete_message': 'Échec de la suppression du message',
+      'clear_chat': 'Effacer le Chat',
+      'clear_chat_confirm': 'Êtes-vous sûr de vouloir effacer l\'historique de votre chat ?',
 
       // Authentication
       'sign_in': 'Se connecter',

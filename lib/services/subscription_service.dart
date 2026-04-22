@@ -121,13 +121,15 @@ class SubscriptionService {
             // ✅ Still valid — save locally and return
             final subType = data?['subscriptionType'] ?? '';
             await _saveSubscriptionState(subType);
-            if (kDebugMode)
+            if (kDebugMode) {
               print('✅ Subscription valid from Firebase. Expiry: $expiry');
+            }
             return;
           } else {
             // ❌ Expired in Firebase — revoke and try restore
-            if (kDebugMode)
+            if (kDebugMode) {
               print('⚠️ Firebase subscription expired. Trying restore...');
+            }
             await _revokeSubscription(user.uid);
           }
         }
@@ -308,8 +310,9 @@ class SubscriptionService {
         type: 'subscription',
       );
 
-      if (kDebugMode)
+      if (kDebugMode) {
         print('Premium subscription processed for user: ${user.uid}');
+      }
     } catch (e) {
       if (kDebugMode) print('Error delivering product: $e');
     }
@@ -326,8 +329,9 @@ class SubscriptionService {
       final response = await googlePlayPlatform.queryPastPurchases();
 
       if (response.error != null) {
-        if (kDebugMode)
+        if (kDebugMode) {
           print('❌ Failed to query past purchases: ${response.error!.message}');
+        }
         return;
       }
 
