@@ -1,17 +1,23 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:velmora/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velmora/services/notification_service.dart';
+
 
 /// UserService handles all user-related Firestore operations
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  /// Get current user ID
+  /// Get current user ID - note: needs to be handled carefully because SharedPreferences is async.
+  /// For now, we prefer Firebase Auth if available, then local storage.
   String? get currentUserId => _auth.currentUser?.uid;
+
+  Future<String?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('uid') ?? currentUserId;
+  }
 
   /// Get user document reference
   DocumentReference get _userDoc =>
@@ -66,68 +72,7 @@ class UserService {
     }
   }
 
-  /// Upload profile picture and update user document
-  Future<String> uploadProfilePicture(File imageFile) async {
-    try {
-      final userId = currentUserId;
-      if (userId == null) throw 'User not authenticated';
 
-      // Create a reference to Firebase Storage
-      final storageRef = _storage.ref().child('profile_pictures/$userId.jpg');
-
-      // Upload the file
-      final uploadTask = await storageRef.putFile(imageFile);
-
-      // Get the download URL
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
-
-      // Update Firestore with the new profile picture URL
-      await _userDoc.update({
-        'profilePictureUrl': downloadUrl,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      NotificationService().addInAppNotification(
-        title: 'Profile Updated',
-        body: 'Your profile picture has been successfully updated.',
-        type: 'profile',
-      );
-
-      return downloadUrl;
-    } catch (e) {
-      throw 'Failed to upload profile picture: $e';
-    }
-  }
-
-  /// Get profile picture URL
-  Future<String?> getProfilePictureUrl() async {
-    try {
-      final userData = await getUserData();
-      return userData?['profilePictureUrl'] as String?;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Delete profile picture
-  Future<void> deleteProfilePicture() async {
-    try {
-      final userId = currentUserId;
-      if (userId == null) throw 'User not authenticated';
-
-      // Delete from Storage
-      final storageRef = _storage.ref().child('profile_pictures/$userId.jpg');
-      await storageRef.delete();
-
-      // Remove from Firestore
-      await _userDoc.update({
-        'profilePictureUrl': FieldValue.delete(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      throw 'Failed to delete profile picture: $e';
-    }
-  }
 
   /// Start free trial (stored in Firestore)
   Future<void> startTrial() async {
@@ -270,16 +215,7 @@ class UserService {
     if (userId == null) throw 'User not authenticated';
 
     try {
-      // 1. Delete profile picture from storage if it exists
-      try {
-        final storageRef = _storage.ref().child('profile_pictures/$userId.jpg');
-        await storageRef.delete();
-      } catch (e) {
-        // Ignore if file doesn't exist
-        print('Profile picture deletion skipped or failed: $e');
-      }
-
-      // 2. Delete game content views sub-collection
+      // 1. Delete game content views sub-collection
       final gameViews = await _userDoc.collection('game_content_views').get();
       for (var doc in gameViews.docs) {
         await doc.reference.delete();

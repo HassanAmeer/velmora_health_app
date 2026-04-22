@@ -1,6 +1,9 @@
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_auth/firebase_auth.dart";
 import "package:firebase_messaging/firebase_messaging.dart";
 import "package:flutter/material.dart";
 import "package:flutter_local_notifications/flutter_local_notifications.dart";
+import "package:shared_preferences/shared_preferences.dart";
 import "package:velmora/main.dart";
 import "package:velmora/screens/settings/notifications_screen.dart";
 
@@ -80,9 +83,36 @@ class Notify {
   }
 
   // get token for use to send notification
-  Future getTokenF(context) async {
+  Future getTokenF() async {
     String? token = await msg.getToken();
     debugPrint("👉 token: $token");
+
+    // Save token to Firestore
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? uid = prefs.getString('uid'); // Use UID from local storage
+
+      // Fallback to FirebaseAuth if local storage UID is missing
+      if (uid == null) {
+        final user = FirebaseAuth.instance.currentUser;
+        uid = user?.uid;
+      }
+
+      if (uid != null && token != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'fcmToken': token,
+        });
+
+        // Subscribe to a topic for "All Users" notifications
+        await msg.subscribeToTopic('all');
+
+        debugPrint(
+          "👉 FCM token saved and subscribed to 'all' topic for user: $uid",
+        );
+      }
+    } catch (e) {
+      debugPrint("Error saving FCM token or subscribing: $e");
+    }
     return token;
   }
 

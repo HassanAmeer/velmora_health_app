@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
@@ -95,9 +96,16 @@ class NotificationService {
   /// Save FCM token to Firestore
   Future<void> _saveFCMToken(String token) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await _firestore.collection('users').doc(user.uid).update({
+      final prefs = await SharedPreferences.getInstance();
+      String? uid = prefs.getString('uid');
+
+      if (uid == null) {
+        final user = FirebaseAuth.instance.currentUser;
+        uid = user?.uid;
+      }
+
+      if (uid != null) {
+        await _firestore.collection('users').doc(uid).update({
           'fcmToken': token,
           'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
         });
@@ -307,7 +315,16 @@ class NotificationService {
     String? overrideUid,
   }) async {
     try {
-      final uid = overrideUid ?? FirebaseAuth.instance.currentUser?.uid;
+      String? uid = overrideUid;
+      if (uid == null) {
+        final prefs = await SharedPreferences.getInstance();
+        uid = prefs.getString('uid');
+      }
+
+      if (uid == null) {
+        uid = FirebaseAuth.instance.currentUser?.uid;
+      }
+
       if (uid == null) return;
 
       await _firestore

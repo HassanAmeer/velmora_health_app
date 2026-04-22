@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Notify().listenBackgroundNotification();
     Notify().listenNotificationOnOpendApp();
     Notify().onClickFcmNotifi();
-    Notify().getTokenF(context);
+    Notify().getTokenF();
     _loadUserData();
   }
 
