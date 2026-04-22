@@ -4,15 +4,18 @@ import {
     CircularProgress, Alert, MenuItem, Radio, RadioGroup,
     FormControlLabel, FormControl, FormLabel, Chip, Autocomplete, Stack
 } from '@mui/material';
-import { Send, Refresh, NotificationsActive } from '@mui/icons-material';
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
+import { Delete, Send, Refresh, NotificationsActive } from '@mui/icons-material';
+import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import SkeletonLoader from '../../components/Layout/SkeletonLoader';
+import { sendFCMNotification } from '../../services/fcmService';
+import { IconButton, Tooltip } from '@mui/material';
 
 interface User {
     uid: string;
     email: string;
     displayName?: string;
+    fcmToken?: string;
 }
 
 interface NotificationHistory {
@@ -22,9 +25,11 @@ interface NotificationHistory {
     type: string;
     targetType: string;
     targetUsers?: string[];
+    targetUserNames?: string[];
     sentAt: any;
     sentBy: string;
     recipientCount?: number;
+    fcmTokenCount?: number;
 }
 
 const notificationTypes = [
@@ -65,6 +70,7 @@ const NotificationsPage: React.FC = () => {
                     uid: doc.id,
                     email: data.email || 'No email',
                     displayName: data.displayName || data.name || 'Unknown User',
+                    fcmToken: data.fcmToken,
                 });
             });
             setUsers(usersList);
@@ -127,8 +133,19 @@ const NotificationsPage: React.FC = () => {
                 targetUserIds = selectedUsers.map(u => u.uid);
             }
 
-            // Add notification to each user's subcollection
+            if (targetType === 'all') {
+                // Add to global_notifications for broadcast simulation
+                await addDoc(collection(db, 'global_notifications'), notificationData);
+            }
+
+            // Add notification to each user's subcollection and collect tokens
+            const fcmTokens: string[] = [];
             const promises = targetUserIds.map(async (uid) => {
+                const user = users.find(u => u.uid === uid);
+                if (user?.fcmToken) {
+                    fcmTokens.push(user.fcmToken);
+                }
+
                 await addDoc(
                     collection(db, 'users', uid, 'notifications'),
                     notificationData
@@ -137,6 +154,36 @@ const NotificationsPage: React.FC = () => {
 
             await Promise.all(promises);
 
+            // Trigger Actual Push Notifications
+            console.log('🚀 Triggering direct FCM push...');
+            let fcmSentCount = 0;
+
+            if (targetType === 'all') {
+                // Send via topic
+                try {
+                    await sendFCMNotification({
+                        topic: 'all',
+                        title: title.trim(),
+                        body: body.trim(),
+                    });
+                    fcmSentCount = users.length; // Approximate
+                } catch (err) {
+                    console.error('Topic notification failed:', err);
+                }
+            } else {
+                // Send to specific tokens
+                const validTokens = fcmTokens.filter(t => t && t.length > 10);
+                const pushPromises = validTokens.map(token => 
+                    sendFCMNotification({
+                        recipientToken: token,
+                        title: title.trim(),
+                        body: body.trim(),
+                    }).catch(err => console.error(`Failed to send to token ${token}:`, err))
+                );
+                await Promise.all(pushPromises);
+                fcmSentCount = validTokens.length;
+            }
+
             // Save to notification history
             const historyData: any = {
                 title: title.trim(),
@@ -144,20 +191,24 @@ const NotificationsPage: React.FC = () => {
                 type,
                 targetType,
                 sentAt: serverTimestamp(),
-                sentBy: 'admin', // You can replace with actual admin email
+                sentBy: 'admin',
                 recipientCount: targetUserIds.length,
+                fcmTokenCount: fcmTokens.length,
             };
 
-            // Only add targetUsers if specific users were selected
             if (targetType === 'specific') {
                 historyData.targetUsers = targetUserIds;
+                historyData.targetUserNames = selectedUsers.map(u => u.displayName || u.email);
             }
 
             await addDoc(collection(db, 'notification_history'), historyData);
 
-            setSuccess(
-                `Notification sent successfully to ${targetUserIds.length} user${targetUserIds.length > 1 ? 's' : ''}!`
-            );
+            let successMsg = `Notification saved to ${targetUserIds.length} user dashboards.`;
+            if (fcmTokens.length > 0) {
+                successMsg += ` (Identified ${fcmTokens.length} devices for push notifications)`;
+            }
+
+            setSuccess(successMsg);
 
             // Reset form
             setTitle('');
@@ -175,6 +226,20 @@ const NotificationsPage: React.FC = () => {
         }
     };
 
+    const handleDeleteHistory = async (id: string) => {
+        if (!window.confirm('Delete this notification from history?')) return;
+        setDeletingId(id);
+        try {
+            await deleteDoc(doc(db, 'notification_history', id));
+            setHistory(prev => prev.filter(item => item.id !== id));
+            setSuccess('Deleted from history');
+        } catch (e: any) {
+            setError('Delete failed: ' + e.message);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     const formatDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
         try {
@@ -185,7 +250,9 @@ const NotificationsPage: React.FC = () => {
         }
     };
 
-    if (loading) {
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    if (loadingUsers) {
         return <SkeletonLoader type="table" />;
     }
 
@@ -361,33 +428,55 @@ const NotificationsPage: React.FC = () => {
                                             borderColor: 'grey.200',
                                         }}
                                     >
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Typography variant="subtitle2" fontWeight="bold">
-                                                {item.title}
-                                            </Typography>
-                                            <Chip
-                                                label={item.type}
-                                                size="small"
-                                                sx={{
-                                                    bgcolor: notificationTypes.find(t => t.value === item.type)?.color || '#999',
-                                                    color: 'white',
-                                                    fontSize: '10px',
-                                                }}
-                                            />
-                                        </Box>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            {item.body}
-                                        </Typography>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {formatDate(item.sentAt)}
-                                            </Typography>
-                                            <Chip
-                                                label={item.targetType === 'all' ? 'All Users' : `${item.recipientCount || 0} users`}
-                                                size="small"
-                                                variant="outlined"
-                                            />
-                                        </Box>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                                    <Typography variant="subtitle2" fontWeight="bold">
+                                                        {item.title}
+                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <Chip
+                                                            label={item.type}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: notificationTypes.find(t => t.value === item.type)?.color || '#999',
+                                                                color: 'white',
+                                                                fontSize: '10px',
+                                                                height: 20
+                                                            }}
+                                                        />
+                                                        <Tooltip title="Delete History">
+                                                            <IconButton 
+                                                                size="small" 
+                                                                color="error"
+                                                                onClick={() => handleDeleteHistory(item.id)}
+                                                                disabled={deletingId === item.id}
+                                                            >
+                                                                {deletingId === item.id ? (
+                                                                    <CircularProgress size={18} color="inherit" />
+                                                                ) : (
+                                                                    <Delete sx={{ fontSize: 18 }} />
+                                                                )}
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Box>
+                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                    {item.body}
+                                                </Typography>
+                                                {item.targetUserNames && item.targetUserNames.length > 0 && (
+                                                    <Typography variant="caption" display="block" sx={{ mb: 1, color: 'primary.main', fontStyle: 'italic' }}>
+                                                        Sent to: {item.targetUserNames.join(', ')}
+                                                    </Typography>
+                                                )}
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {formatDate(item.sentAt)}
+                                                    </Typography>
+                                                    <Chip
+                                                        label={item.targetType === 'all' ? 'All Users' : `${item.recipientCount || 0} users`}
+                                                        size="small"
+                                                        variant="outlined"
+                                                    />
+                                                </Box>
                                     </Box>
                                 ))}
                             </Box>
