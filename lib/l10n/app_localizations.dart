@@ -49,6 +49,7 @@ class AppLocalizations {
       'kegel_exercises': 'Kegel Exercises',
       'kegel_exercises_subtitle': 'Guided routines for intimate wellness',
       'ai_chat': 'AI Chat',
+      'ai_chat_title': 'Velmora AI',
       'ai_chat_subtitle': 'Get personalized relationship guidance',
       'sign_out': 'Sign Out',
 
@@ -239,6 +240,7 @@ class AppLocalizations {
 
       // Chat Screen
       'chat': 'Chat',
+      'chat_screen_appbar_title': 'Velmora AI',
       'ai_companion': 'Your AI relationship companion',
       'ai_greeting':
           'Hello! I\'m here to support your relationship journey. How can I help you today?',
@@ -646,11 +648,12 @@ class AppLocalizations {
       'full_access': 'وصول كامل لجميع الميزات',
       'hours_remaining': 'ساعات متبقية',
       'games': 'ألعاب',
-      'couples_games': 'ألعاب الأزواج',
+      'couples_games': 'العاب زوجية',
       'couples_games_subtitle': 'أنشطة ممتعة لتعميق علاقتك',
       'kegel_exercises': 'تمارين كيجل',
       'kegel_exercises_subtitle': 'روتينات موجهة للصحة الحميمة',
       'ai_chat': 'الدردشة الذكية',
+      'ai_chat_title': 'Velmora AI',
       'ai_chat_subtitle': 'احصل على إرشادات شخصية للعلاقات',
       'sign_out': 'تسجيل الخروج',
 
@@ -714,6 +717,7 @@ class AppLocalizations {
 
       // Chat Screen
       'chat': 'دردشة',
+      'chat_screen_appbar_title': 'Velmora AI',
       'ai_companion': 'رفيقك الذكي للعلاقات',
       'ai_greeting':
           'مرحباً! أنا هنا لدعم رحلة علاقتك. كيف يمكنني مساعدتك اليوم؟',
@@ -735,14 +739,14 @@ class AppLocalizations {
       'forgot_password': 'نسيت كلمة المرور؟',
       'dont_have_account': 'ليس لديك حساب؟',
       'already_have_account': 'لديك حساب بالفعل؟',
-      'or_continue_with': 'أو تابع مع',
-      'google': 'جوجل',
+      'or_continue_with': 'تابع مع',
+      'google': 'غوغل',
       'apple': 'آبل',
       'create_account': 'إنشاء حساب',
       'welcome_to_velmora': 'مرحباً بك في Together',
       'strengthen_your_relationship':
           'عزز علاقتك بإرشادات مدعومة بالذكاء الاصطناعي',
-      'wellness_for_couples': 'الصحة للعائلات',
+      'wellness_for_couples': 'الصحة الزوجية',
       'enter_player_names': 'أدخل أسماء اللاعبين',
       'player_1_name': 'اسم اللاعب 1',
       'player_2_name': 'اسم اللاعب 2',
@@ -1045,7 +1049,7 @@ class AppLocalizations {
       'read_our_terms_and_conditions': 'اقرأ الشروط والأحكام',
       'how_we_handle_your_data': 'كيف نتعامل مع بياناتك',
       'strengthening_relationships_through_wellness':
-          'تقوية العلاقات من خلال العافية',
+          'تقوية العلاقات من خلال المعرفة',
       'frequently_asked_questions': 'الأسئلة الشائعة',
       'no_faqs_available_at_the_moment': 'لا توجد أسئلة شائعة متاحة حالياً.',
       'send_us_a_message_and_well_get_back_to_you_soon':
@@ -1256,6 +1260,7 @@ class AppLocalizations {
       'kegel_exercises': 'Exercices de Kegel',
       'kegel_exercises_subtitle': 'Routines guidées pour le bien-être intime',
       'ai_chat': 'Chat IA',
+      'ai_chat_title': 'Velmora AI',
       'ai_chat_subtitle':
           'Obtenez des conseils personnalisés sur les relations',
       'sign_out': 'Se déconnecter',
@@ -1322,6 +1327,7 @@ class AppLocalizations {
 
       // Chat Screen
       'chat': 'Chat',
+      'chat_screen_appbar_title': 'Velmora AI',
       'ai_companion': 'Votre compagnon IA pour les relations',
       'ai_greeting':
           'Bonjour! Je suis là pour soutenir votre parcours relationnel. Comment puis-je vous aider aujourd\'hui?',
@@ -1332,7 +1338,8 @@ class AppLocalizations {
           "Désolé, j'ai du mal à me connecter à mon cerveau IA en ce moment. Veuillez contacter l'administrateur.",
       'failed_to_delete_message': 'Échec de la suppression du message',
       'clear_chat': 'Effacer le Chat',
-      'clear_chat_confirm': 'Êtes-vous sûr de vouloir effacer l\'historique de votre chat ?',
+      'clear_chat_confirm':
+          'Êtes-vous sûr de vouloir effacer l\'historique de votre chat ?',
 
       // Authentication
       'sign_in': 'Se connecter',
@@ -1886,6 +1893,7 @@ class AppLocalizations {
   String get kegelExercises => translate('kegel_exercises');
   String get kegelExercisesSubtitle => translate('kegel_exercises_subtitle');
   String get aiChat => translate('ai_chat');
+  String get aiChatTitle => translate('ai_chat_title');
   String get aiChatSubtitle => translate('ai_chat_subtitle');
   String get signOut => translate('sign_out');
 
@@ -1948,6 +1956,7 @@ class AppLocalizations {
   String get kegelPlan => translate('kegel_plan');
 
   // Chat Screen
+  String get chatScreenAppBarTitle => translate('chat_screen_appbar_title');
   String get chat => translate('chat');
   String get aiCompanion => translate('ai_companion');
   String get aiGreeting => translate('ai_greeting');

@@ -265,7 +265,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   : Alignment.bottomLeft,
                               child: isCollapsed
                                   ? Text(
-                                      l10n.chat,
+                                      l10n.chatScreenAppBarTitle,
                                       style: TextStyle(
                                         fontSize: 18.fSize,
                                         fontWeight: FontWeight.bold,
@@ -286,7 +286,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             ),
                                             SizedBox(width: 12.w),
                                             Text(
-                                              l10n.chat,
+                                              l10n.chatScreenAppBarTitle,
                                               style: TextStyle(
                                                 fontSize: 32.fSize,
                                                 fontWeight: FontWeight.bold,

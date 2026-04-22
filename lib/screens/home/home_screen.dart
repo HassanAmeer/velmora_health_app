@@ -657,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () => _navigateToFeature('kegel'),
                             ),
                             _buildFeatureCard(
-                              title: AppLocalizations.of(context).aiChat,
+                              title: AppLocalizations.of(context).aiChatTitle,
                               subtitle: AppLocalizations.of(
                                 context,
                               ).aiChatSubtitle,
