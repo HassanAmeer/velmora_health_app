@@ -322,7 +322,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   if (userData['deleted'] == true) {
                     message = 'Account Not Found!';
                   } else if (userData['isBanned'] == true) {
-                    message = 'This account has been banned. Please contact support.';
+                    message =
+                        'This account has been banned. Please contact support.';
                     isBan = true;
                   }
                 } else {
