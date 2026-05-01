@@ -29,6 +29,7 @@ class FirestoreService {
         'subscriptionStatus': 'free',
         'preferredLanguage': preferredLanguage ?? 'en',
         'isBanned': false,
+        'deleted': false,
         'authProvider': authProvider ?? 'email',
         'hasUsed48HourTrial': false,
       };
@@ -38,6 +39,25 @@ class FirestoreService {
       throw handleFirestoreException(e);
     } catch (e) {
       throw 'Failed to create user profile. Please try again.';
+    }
+  }
+
+  /// Get user document by email
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    try {
+      final QuerySnapshot query = await _usersCollection
+          .where('email', isEqualTo: email.trim())
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.data() as Map<String, dynamic>;
+      }
+      return null;
+    } on FirebaseException catch (e) {
+      throw handleFirestoreException(e);
+    } catch (e) {
+      throw 'Failed to fetch user data. Please try again.';
     }
   }
 

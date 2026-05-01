@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velmora/firebase_options.dart';
 import 'package:velmora/l10n/app_localizations.dart';
 import 'package:velmora/screens/auth/sign_in_screen.dart';
@@ -11,6 +12,7 @@ import 'package:velmora/services/ai_service.dart';
 import 'package:velmora/services/subscription_service.dart';
 import 'package:velmora/services/ai_config_setup.dart';
 import 'package:velmora/services/error_cache_service.dart';
+import 'package:velmora/screens/settings/help_support_screen.dart';
 import 'package:velmora/utils/responsive_sizer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -255,22 +257,112 @@ class _MyAppState extends State<MyApp> {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
-          home: _showSplash
-              ? const SplashScreen()
-              : StreamBuilder<User?>(
-                  stream: _authService.authStateChanges,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (snapshot.hasData) {
-                      return const BottomNavBarWidget();
-                    }
-                    return const LogInScreen();
-                  },
-                ),
+          home: _showSplash ? const SplashScreen() : const AuthWrapper(),
+        );
+      },
+    );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoggingOut = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = AuthService();
+    return StreamBuilder<User?>(
+      stream: authService.authStateChanges,
+      builder: (context, authSnapshot) {
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final user = authSnapshot.data;
+        if (user == null) {
+          // Reset the flag when we are officially logged out
+          _isLoggingOut = false;
+          return const LogInScreen();
+        }
+
+        // User is authenticated in Firebase Auth, now check Firestore status
+        return StreamBuilder<DocumentSnapshot?>(
+          stream: authService.firestoreService.userDocumentStream(user.uid),
+          builder: (context, firestoreSnapshot) {
+            if (firestoreSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final userData =
+                firestoreSnapshot.data?.data() as Map<String, dynamic>?;
+
+            // CRITICAL SECURITY CHECK
+            if (!firestoreSnapshot.hasData ||
+                !firestoreSnapshot.data!.exists ||
+                userData == null ||
+                userData['deleted'] == true ||
+                userData['isBanned'] == true) {
+              if (!_isLoggingOut) {
+                _isLoggingOut = true;
+
+                // Determine the error message
+                String message = 'Session expired. Please log in again.';
+                bool isBan = false;
+                if (userData != null) {
+                  if (userData['deleted'] == true) {
+                    message = 'Account Not Found!';
+                  } else if (userData['isBanned'] == true) {
+                    message = 'This account has been banned. Please contact support.';
+                    isBan = true;
+                  }
+                } else {
+                  message = 'Account Does Not Exist!';
+                }
+
+                // Sign out after a brief delay
+                Future.microtask(() async {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: isBan ? Colors.orange : Colors.red,
+                        duration: const Duration(seconds: 4),
+                        action: SnackBarAction(
+                          label: 'Contact',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            navigatorKey.currentState?.push(
+                              MaterialPageRoute(
+                                builder: (context) => const HelpSupportScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }
+
+                  await Future.delayed(const Duration(seconds: 3));
+                  await authService.logout();
+                });
+              }
+
+              return const LogInScreen();
+            }
+
+            // User is valid and active
+            return const BottomNavBarWidget();
+          },
         );
       },
     );

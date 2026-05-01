@@ -17,7 +17,6 @@ import 'package:http/http.dart' as http;
 import 'package:velmora/utils/responsive_sizer.dart';
 import 'package:velmora/widgets/loading_widget.dart';
 
-import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 //
 /// Subscription Service for managing in-app purchases

@@ -321,9 +321,7 @@ class NotificationService {
         uid = prefs.getString('uid');
       }
 
-      if (uid == null) {
-        uid = FirebaseAuth.instance.currentUser?.uid;
-      }
+      uid ??= FirebaseAuth.instance.currentUser?.uid;
 
       if (uid == null) return;
 

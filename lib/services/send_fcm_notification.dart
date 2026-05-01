@@ -73,7 +73,7 @@ sendFCMNotificationf({
       body: jsonEncode({
         'message': {
           'token': recipientToken,
-          "notification": {"title": "$title", "body": "$body"},
+          "notification": {"title": title, "body": body},
           "android": {
             "notification": {
               "icon": "ic_notification",

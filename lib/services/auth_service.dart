@@ -60,7 +60,8 @@ class AuthService {
           userId: userCredential.user!.uid,
           email: email.trim(),
           password: password,
-          displayName: userCredential.user!.displayName ?? email.trim().split('@')[0],
+          displayName:
+              userCredential.user!.displayName ?? email.trim().split('@')[0],
           preferredLanguage: currentLanguage,
           authProvider: 'email',
         );
@@ -91,26 +92,35 @@ class AuthService {
     required String password,
   }) async {
     try {
+      // 1. Pre-login check: Fetch user by email from Firestore
+      final userData = await _firestoreService.getUserByEmail(email);
+
+      // 2. Check if records are empty or user is deleted
+      if (userData == null || userData['deleted'] == true) {
+        throw 'No account found with this email. Please sign up first.';
+      }
+
+      // 3. Check if user is banned
+      if (userData['isBanned'] == true) {
+        throw 'This account has been banned. Please contact support.';
+      }
+
+      // 4. Proceed to Firebase Auth only if checks pass
       final UserCredential userCredential = await _firebaseAuth
           .signInWithEmailAndPassword(email: email.trim(), password: password);
 
-      // Check if user is banned
       if (userCredential.user != null) {
-        final isBanned = await isUserBanned(userCredential.user!.uid);
-        if (isBanned) {
-          await _firebaseAuth.signOut();
-          throw 'This account has been banned. Please contact support.';
-        }
-
+        final uid = userCredential.user!.uid;
         // Update last login timestamp in Firestore
-        await _firestoreService.updateLastLogin(userCredential.user!.uid);
+        await _firestoreService.updateLastLogin(uid);
       }
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      if (e.toString().contains('banned')) {
+      if (e.toString().contains('banned') ||
+          e.toString().contains('No account found')) {
         rethrow;
       }
       throw 'An unexpected error occurred. Please try again.';
@@ -166,6 +176,19 @@ class AuthService {
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
+      // PRE-LOGIN CHECK: Check if user is deleted or banned in Firestore
+      final userData = await _firestoreService.getUserByEmail(googleUser.email);
+      if (userData != null) {
+        if (userData['deleted'] == true) {
+          await _googleSignIn.signOut();
+          throw 'No account found with this email. Please sign up first.';
+        }
+        if (userData['isBanned'] == true) {
+          await _googleSignIn.signOut();
+          throw 'This account has been banned. Please contact support.';
+        }
+      }
+
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -207,6 +230,11 @@ class AuthService {
             overrideUid: userCredential.user!.uid,
           );
         } else {
+          // Check if user is deleted
+          if (existingUser['deleted'] == true) {
+            await _firebaseAuth.signOut();
+            throw 'No account found with this email. Please sign up first.';
+          }
           await _firestoreService.updateLastLogin(userCredential.user!.uid);
         }
       }
@@ -215,6 +243,10 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
+      if (e.toString().contains('banned') ||
+          e.toString().contains('No account found')) {
+        rethrow;
+      }
       if (e.toString().contains('NETWORK')) {
         throw 'Network error. Please check your internet connection.';
       }
@@ -232,6 +264,20 @@ class AuthService {
           AppleIDAuthorizationScopes.fullName,
         ],
       );
+
+      // PRE-LOGIN CHECK: Check if user is deleted or banned in Firestore
+      final emailFromApple = credential.email ?? '';
+      if (emailFromApple.isNotEmpty) {
+        final userData = await _firestoreService.getUserByEmail(emailFromApple);
+        if (userData != null) {
+          if (userData['deleted'] == true) {
+            throw 'No account found with this email. Please sign up first.';
+          }
+          if (userData['isBanned'] == true) {
+            throw 'This account has been banned. Please contact support.';
+          }
+        }
+      }
 
       // Create an OAuthCredential for Apple Sign-In
       final oAuthProvider = OAuthProvider('apple.com')
@@ -285,6 +331,11 @@ class AuthService {
             overrideUid: userCredential.user!.uid,
           );
         } else {
+          // Check if user is deleted
+          if (existingUser['deleted'] == true) {
+            await _firebaseAuth.signOut();
+            throw 'No account found with this email. Please sign up first.';
+          }
           await _firestoreService.updateLastLogin(userCredential.user!.uid);
         }
       }
@@ -300,6 +351,10 @@ class AuthService {
       }
       throw 'Apple Sign-In failed: $e';
     } catch (e) {
+      if (e.toString().contains('banned') ||
+          e.toString().contains('No account found')) {
+        rethrow;
+      }
       if (e.toString().contains('NETWORK')) {
         throw 'Network error. Please check your internet connection.';
       }
