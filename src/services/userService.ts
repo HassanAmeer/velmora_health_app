@@ -7,7 +7,8 @@ import {
     getDocs,
     doc,
     getDoc,
-    updateDoc
+    updateDoc,
+    deleteDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -207,13 +208,27 @@ const deleteUser = async (uid: string) => {
     await updateDoc(doc(db, 'users', uid), { deleted: true });
 };
 
+const restoreUser = async (uid: string) => {
+    await updateDoc(doc(db, 'users', uid), { deleted: false });
+};
+
+const permanentlyDeleteUser = async (uid: string) => {
+    // Delete from Firestore
+    await deleteDoc(doc(db, 'users', uid));
+    
+    // Note: Deleting from Firebase Auth directly from the frontend is not possible 
+    // for other users due to security restrictions. This usually requires a 
+    // Cloud Function using the Firebase Admin SDK.
+    // If you have a Cloud Function for this, you can call it here.
+    console.log(`User ${uid} deleted from Firestore. Auth deletion requires Cloud Functions.`);
+};
+
 const getUsers = async (pageSize = 10) => {
     const q = query(collection(db, 'users'), limit(pageSize));
     const querySnapshot = await getDocs(q);
 
     return querySnapshot.docs
-        .map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile))
-        .filter(user => !user.deleted);
+        .map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
 };
 
 export const userService = {
@@ -222,6 +237,8 @@ export const userService = {
     updateUserSubscription,
     updateUser,
     deleteUser,
+    restoreUser,
+    permanentlyDeleteUser,
     getUserGameProgress,
     getUserKegelProgress
 };
@@ -232,6 +249,8 @@ export {
     updateUserSubscription,
     updateUser,
     deleteUser,
+    restoreUser,
+    permanentlyDeleteUser,
     getUserGameProgress,
     getUserKegelProgress
 };

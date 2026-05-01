@@ -30,6 +30,8 @@ import {
     Visibility,
     FilterList,
     Delete,
+    DeleteForever,
+    RestoreFromTrash,
     Close,
     SportsEsports,
     FitnessCenter,
@@ -46,7 +48,9 @@ const UserListPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [permDeleteDialogOpen, setPermDeleteDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+    const [permDeleting, setPermDeleting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
@@ -70,8 +74,11 @@ const UserListPage: React.FC = () => {
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const getStatusChip = (status: string) => {
-        switch (status) {
+    const getStatusChip = (user: UserProfile) => {
+        if (user.deleted) return <Chip label="DELETED" color="error" variant="outlined" size="small" />;
+        if (user.isBanned) return <Chip label="BANNED" color="error" size="small" />;
+
+        switch (user.subscriptionStatus) {
             case 'premium': return <Chip label="Premium" color="primary" size="small" />;
             case 'trial': return <Chip label="Trial" color="warning" size="small" />;
             default: return <Chip label="Free" color="default" size="small" />;
@@ -114,6 +121,44 @@ const UserListPage: React.FC = () => {
             setError(err.message || 'Failed to delete user');
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const handleRestoreClick = async (user: UserProfile) => {
+        try {
+            await userService.restoreUser(user.uid);
+            setSuccess('User account restored successfully!');
+            // Refresh users
+            const data = await userService.getUsers(50);
+            setUsers(data);
+        } catch (err: any) {
+            setError(err.message || 'Failed to restore user');
+        }
+    };
+
+    const handlePermanentDeleteClick = (user: UserProfile, triggerElement?: HTMLButtonElement | null) => {
+        triggerElement?.blur();
+        setSelectedUser(user);
+        setPermDeleteDialogOpen(true);
+    };
+
+    const handlePermanentDeleteConfirm = async () => {
+        if (!selectedUser || permDeleting) return;
+
+        try {
+            setPermDeleting(true);
+            await userService.permanentlyDeleteUser(selectedUser.uid);
+            setSuccess('User permanently deleted from Firestore!');
+            setPermDeleteDialogOpen(false);
+            setSelectedUser(null);
+
+            // Refresh users
+            const data = await userService.getUsers(50);
+            setUsers(data);
+        } catch (err: any) {
+            setError(err.message || 'Failed to permanently delete user');
+        } finally {
+            setPermDeleting(false);
         }
     };
 
@@ -192,11 +237,7 @@ const UserListPage: React.FC = () => {
                                         </Box>
                                     </TableCell>
                                     <TableCell>
-                                        {user.isBanned ? (
-                                            <Chip label="BANNED" color="error" size="small" />
-                                        ) : (
-                                            getStatusChip(user.subscriptionStatus)
-                                        )}
+                                        {getStatusChip(user)}
                                     </TableCell>
                                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                                         <Box>
@@ -297,14 +338,35 @@ const UserListPage: React.FC = () => {
                                         >
                                             <Visibility fontSize="small" />
                                         </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            color="error"
-                                            onClick={(event) => handleDeleteClick(user, event.currentTarget)}
-                                            title="Delete User"
-                                        >
-                                            <Delete fontSize="small" />
-                                        </IconButton>
+                                        {user.deleted ? (
+                                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                <IconButton
+                                                    size="small"
+                                                    color="success"
+                                                    onClick={() => handleRestoreClick(user)}
+                                                    title="Restore User"
+                                                >
+                                                    <RestoreFromTrash fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={(event) => handlePermanentDeleteClick(user, event.currentTarget)}
+                                                    title="Permanently Delete"
+                                                >
+                                                    <DeleteForever fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+                                        ) : (
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={(event) => handleDeleteClick(user, event.currentTarget)}
+                                                title="Delete User"
+                                            >
+                                                <Delete fontSize="small" />
+                                            </IconButton>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -328,6 +390,27 @@ const UserListPage: React.FC = () => {
                     <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Cancel</Button>
                     <Button onClick={handleDeleteConfirm} variant="contained" color="error" disabled={deleting}>
                         {deleting ? 'Deleting...' : 'Delete Account'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            {/* Permanent Delete Dialog */}
+            <Dialog open={permDeleteDialogOpen} onClose={() => setPermDeleteDialogOpen(false)} maxWidth="sm" fullWidth keepMounted>
+                <DialogTitle>Permanently Delete User</DialogTitle>
+                <DialogContent>
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        CRITICAL ACTION: This will permanently remove the user from Firestore.
+                    </Alert>
+                    <Typography gutterBottom>
+                        Are you sure you want to permanently delete <strong>{selectedUser?.displayName || selectedUser?.email}</strong>?
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Note: This will delete the user record from Firestore. To delete the user from Firebase Authentication, you must also remove them from the Firebase Console or use a Cloud Function.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPermDeleteDialogOpen(false)} disabled={permDeleting}>Cancel</Button>
+                    <Button onClick={handlePermanentDeleteConfirm} variant="contained" color="error" disabled={permDeleting}>
+                        {permDeleting ? 'Deleting...' : 'Permanently Delete'}
                     </Button>
                 </DialogActions>
             </Dialog>

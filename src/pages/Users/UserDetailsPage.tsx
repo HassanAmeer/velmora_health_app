@@ -315,7 +315,10 @@ const UserDetailsPage: React.FC = () => {
                                 {user?.displayName?.charAt(0) || user?.email.charAt(0)}
                             </Avatar>
                             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{user?.displayName || 'Unnamed User'}</Typography>
-                            <Typography color="text.secondary" gutterBottom>{user?.email}</Typography>
+                            <Typography color="text.secondary">{user?.email}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', display: 'block', mb: 1 }}>
+                                ID: {user?.uid}
+                            </Typography>
                             <Box sx={{ mt: 2 }}>
                                 <Chip
                                     label={user?.subscriptionStatus.toUpperCase()}
@@ -364,6 +367,15 @@ const UserDetailsPage: React.FC = () => {
                                             <Box>
                                                 <Typography variant="caption" color="text.secondary">Email Address</Typography>
                                                 <Typography variant="body2">{user.email}</Typography>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                            <VerifiedUser color="action" />
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary">User ID</Typography>
+                                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{user.uid}</Typography>
                                             </Box>
                                         </Box>
                                     </Grid>
