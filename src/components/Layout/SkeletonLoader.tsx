@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Skeleton, Grid, Paper, Stack } from '@mui/material';
 
 interface SkeletonLoaderProps {
-    type?: 'list' | 'card' | 'table' | 'details' | 'dashboard';
+    type?: 'list' | 'card' | 'table' | 'details' | 'dashboard' | 'layout';
     count?: number;
 }
 
@@ -86,6 +86,45 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ type = 'table', count =
             ))}
         </Grid>
     );
+
+    const renderLayoutSkeleton = () => (
+        <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', bgcolor: '#F8FAFC' }}>
+            {/* Sidebar Skeleton */}
+            <Box sx={{ width: 280, display: { xs: 'none', md: 'block' }, borderRight: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4, mt: 1, px: 1 }}>
+                    <Skeleton variant="circular" width={40} height={40} animation="wave" />
+                    <Skeleton variant="text" width={140} height={32} animation="wave" />
+                </Box>
+                <Stack spacing={2}>
+                    {[...Array(6)].map((_, i) => (
+                        <Skeleton key={i} variant="rectangular" width="100%" height={48} animation="wave" sx={{ borderRadius: 2 }} />
+                    ))}
+                </Stack>
+            </Box>
+
+            {/* Main Content Area Skeleton */}
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                {/* Header Skeleton */}
+                <Box sx={{ height: 64, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper', px: 3, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
+                    <Skeleton variant="circular" width={40} height={40} animation="wave" />
+                    <Skeleton variant="circular" width={40} height={40} animation="wave" />
+                </Box>
+
+                {/* Dashboard Content Skeleton */}
+                <Box sx={{ p: { xs: 2.5, sm: 3 }, flexGrow: 1, overflow: 'auto' }}>
+                    <Skeleton variant="text" width={200} height={40} animation="wave" sx={{ mb: 3 }} />
+                    {renderDashboardSkeleton()}
+                    <Box sx={{ mt: 4 }}>
+                        {renderTableSkeleton()}
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
+    );
+
+    if (type === 'layout') {
+        return renderLayoutSkeleton();
+    }
 
     return (
         <Box sx={{ width: '100%', py: 2 }}>

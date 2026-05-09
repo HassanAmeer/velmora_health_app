@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { authService, AdminUser } from '../services/authService';
+import SkeletonLoader from '../components/Layout/SkeletonLoader';
 
 interface AuthContextType {
     user: AdminUser | null;
@@ -155,12 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (
         <AuthContext.Provider value={{ user, loading, role, login, logout }}>
             {initializing ? (
-                <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900">
-                    <div className="text-center">
-                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-                        <p className="mt-4 font-medium text-slate-600 dark:text-slate-400">Initializing Velmora Admin...</p>
-                    </div>
-                </div>
+                <SkeletonLoader type="layout" />
             ) : (
                 children
             )}
