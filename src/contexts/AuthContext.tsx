@@ -23,7 +23,10 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<AdminUser | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    // `initializing` is ONLY for the very first app startup check.
+    // It must NEVER be set to true during a login attempt.
+    const [initializing, setInitializing] = useState(true);
     const [role, setRole] = useState<'Super Admin' | 'Moderator' | null>(null);
 
     const checkDevMode = async () => {
@@ -33,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const adminRole = await authService.getAdminRole(devUser.uid);
                 setUser(devUser as AdminUser);
                 setRole(adminRole || null);
-                setLoading(false);
+                setInitializing(false);
                 return true;
             }
         }
@@ -41,7 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const login = async (email: string, pass: string) => {
-        setLoading(true);
+        // DO NOT touch global loading/initializing here.
+        // LoginPage manages its own loading spinner.
         try {
             const result = await authService.login(email, pass);
             // If it's dev mode, we need to manually update state because onAuthStateChanged won't fire
@@ -52,12 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setUser(devUser as AdminUser);
                     setRole(adminRole || null);
                 }
-                setLoading(false);
             }
             // For regular Firebase login, onAuthStateChanged will handle the state update
             return result;
         } catch (error) {
-            setLoading(false);
+            // Re-throw so LoginPage can show the toast
             throw error;
         }
     };
@@ -74,27 +77,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (isDevMode) return;
 
             // Normal Firebase auth flow
+            let isFirstCheck = true;
             const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-                console.log('AuthContext: onAuthStateChanged fired', { hasUser: !!firebaseUser });
-                setLoading(true);
+                // Only show full-screen loader on the FIRST check (app startup)
+                // Never on subsequent calls triggered by login/logout attempts
+                if (!isFirstCheck) {
+                    if (firebaseUser) {
+                        if (!authService.isSessionValid()) {
+                            await authService.logout();
+                            setUser(null);
+                            setRole(null);
+                            return;
+                        }
+                        try {
+                            const adminRole = await authService.getAdminRole(firebaseUser.uid);
+                            setUser({ ...firebaseUser } as AdminUser);
+                            setRole(adminRole || null);
+                        } catch (error) {
+                            setUser(null);
+                            setRole(null);
+                        }
+                    } else {
+                        setUser(null);
+                        setRole(null);
+                    }
+                    return;
+                }
 
+                // First check only
+                isFirstCheck = false;
                 if (firebaseUser) {
                     if (!authService.isSessionValid()) {
-                        console.log('AuthContext: Session invalid in listener. Logging out...');
                         await authService.logout();
                         setUser(null);
                         setRole(null);
-                        setLoading(false);
+                        setInitializing(false);
                         return;
                     }
-
-                    console.log('AuthContext: Fetching admin role for', firebaseUser.uid);
                     try {
                         const adminRole = await authService.getAdminRole(firebaseUser.uid);
                         setUser({ ...firebaseUser } as AdminUser);
                         setRole(adminRole || null);
                     } catch (error) {
-                        console.error('AuthContext: Error fetching admin role:', error);
                         setUser(null);
                         setRole(null);
                     }
@@ -102,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setUser(null);
                     setRole(null);
                 }
-                setLoading(false);
+                setInitializing(false);
             });
 
             return unsubscribe;
@@ -130,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         <AuthContext.Provider value={{ user, loading, role, login, logout }}>
-            {loading ? (
+            {initializing ? (
                 <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900">
                     <div className="text-center">
                         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>

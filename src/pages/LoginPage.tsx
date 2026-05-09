@@ -9,7 +9,8 @@ import {
     Alert,
     CircularProgress,
     InputAdornment,
-    IconButton
+    IconButton,
+    Snackbar
 } from '@mui/material';
 import { LockOutlined, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,28 +18,35 @@ import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
     const [email, setEmail] = useState(localStorage.getItem('adminCredentialsEmail') || 'admin@gmail.com');
-    const [password, setPassword] = useState(localStorage.getItem('adminCredentialsPassword') || '12345678');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [toastOpen, setToastOpen] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
 
+    const showErrorToast = (message: string) => {
+        setToastMessage(message);
+        setToastOpen(true);
+    };
+
+    const handleToastClose = (_event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === 'clickaway') return;
+        setToastOpen(false);
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setLoading(true);
-        setError('');
 
         try {
-            console.log('Logging in...');
-            console.log('Email:', email);
-            console.log('Password:', password);
             await login(email, password);
-            console.log('Login successful');
-            console.log('Navigating to /');
             navigate('/');
         } catch (err: any) {
-            setError(err.message || 'Failed to login. Please check your credentials.');
+            setPassword('');
+            showErrorToast('Invalid login credentials. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -54,6 +62,29 @@ const LoginPage: React.FC = () => {
                 background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)'
             }}
         >
+            {/* Invalid Login Toast */}
+            <Snackbar
+                open={toastOpen}
+                autoHideDuration={5000}
+                onClose={handleToastClose}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={handleToastClose}
+                    severity="error"
+                    variant="filled"
+                    sx={{
+                        width: '100%',
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        borderRadius: 2,
+                        boxShadow: 6
+                    }}
+                >
+                    {toastMessage}
+                </Alert>
+            </Snackbar>
+
             <Card sx={{ maxWidth: 400, width: '90%', borderRadius: 3, boxShadow: 10 }}>
                 <CardContent sx={{ p: 4, textAlign: 'center' }}>
                     <Box sx={{ mb: 3 }}>
@@ -83,9 +114,7 @@ const LoginPage: React.FC = () => {
                         </Typography> */}
                     </Box>
 
-                    {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-
-                    <form onSubmit={handleLogin}>
+                    <form onSubmit={handleLogin} autoComplete="off">
                         <TextField
                             fullWidth
                             label="Email Address"
@@ -95,6 +124,8 @@ const LoginPage: React.FC = () => {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             type="email"
+                            autoComplete="off"
+                            inputProps={{ autoComplete: 'off' }}
                         />
                         <TextField
                             fullWidth
@@ -105,6 +136,8 @@ const LoginPage: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            inputProps={{ autoComplete: 'new-password' }}
                             InputProps={{
                                 endAdornment: (
                                     <InputAdornment position="end">
