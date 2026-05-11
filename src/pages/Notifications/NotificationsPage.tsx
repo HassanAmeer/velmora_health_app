@@ -16,6 +16,7 @@ interface User {
     email: string;
     displayName?: string;
     fcmToken?: string;
+    subscriptionStatus?: string;
 }
 
 interface NotificationHistory {
@@ -71,6 +72,7 @@ const NotificationsPage: React.FC = () => {
                     email: data.email || 'No email',
                     displayName: data.displayName || data.name || 'Unknown User',
                     fcmToken: data.fcmToken,
+                    subscriptionStatus: data.subscriptionStatus || 'free',
                 });
             });
             setUsers(usersList);
@@ -351,6 +353,21 @@ const NotificationsPage: React.FC = () => {
 
                             {targetType === 'specific' && (
                                 <Grid item xs={12}>
+                                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Select specific users to notify
+                                        </Typography>
+                                        <Button 
+                                            size="small" 
+                                            variant="outlined"
+                                            onClick={() => {
+                                                const premiumUsers = users.filter(u => u.subscriptionStatus === 'premium');
+                                                setSelectedUsers(premiumUsers);
+                                            }}
+                                        >
+                                            Select All Premium
+                                        </Button>
+                                    </Box>
                                     <Autocomplete
                                         multiple
                                         options={users}
@@ -358,6 +375,23 @@ const NotificationsPage: React.FC = () => {
                                         value={selectedUsers}
                                         onChange={(_, newValue) => setSelectedUsers(newValue)}
                                         loading={loadingUsers}
+                                        renderOption={(props, option) => (
+                                            <li {...props}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                                    <Box>
+                                                        <Typography variant="body2">{option.displayName}</Typography>
+                                                        <Typography variant="caption" color="text.secondary">{option.email}</Typography>
+                                                    </Box>
+                                                    <Chip 
+                                                        label={option.subscriptionStatus || 'free'} 
+                                                        size="small" 
+                                                        color={option.subscriptionStatus === 'premium' ? 'primary' : 'default'}
+                                                        variant="outlined"
+                                                        sx={{ ml: 1, textTransform: 'capitalize' }}
+                                                    />
+                                                </Box>
+                                            </li>
+                                        )}
                                         renderInput={(params) => (
                                             <TextField
                                                 {...params}
