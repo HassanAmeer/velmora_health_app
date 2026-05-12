@@ -36,7 +36,6 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
 
   final Map<int, VoteValue> _partnerAVotes = {};
   final Map<int, VoteValue> _partnerBVotes = {};
-  bool _showFullHistory = false;
   bool _showDimOverlay = false;
 
   @override
@@ -153,20 +152,6 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
     return matches;
   }
 
-  List<Map<String, dynamic>> _getAllCardsWithVotes() {
-    final all = <Map<String, dynamic>>[];
-    for (int i = 0; i < _cards.length; i++) {
-      all.add({
-        'card': _cards[i],
-        'aVote': _partnerAVotes[i],
-        'bVote': _partnerBVotes[i],
-        'isMatch': _partnerAVotes[i] != null && _partnerBVotes[i] != null &&
-            _partnerAVotes[i] != VoteValue.no && _partnerBVotes[i] != VoteValue.no,
-      });
-    }
-    return all;
-  }
-
   int _getMatchCount() => _getMatches().length;
 
   Future<void> _completeGame() async {
@@ -191,7 +176,6 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
       _phase = _GamePhase.handoff;
       _partnerAVotes.clear();
       _partnerBVotes.clear();
-      _showFullHistory = false;
     });
     _questionsService.generateMatchAndRevealCards().then((cards) {
       if (mounted) {
@@ -210,30 +194,6 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
       case 'adventurous': return const Color(0xFFFF9800);
       case 'deep': return const Color(0xFFE91E63);
       default: return const Color(0xFF8B42FF);
-    }
-  }
-
-  IconData _getVoteIcon(VoteValue vote) {
-    switch (vote) {
-      case VoteValue.yes: return Icons.favorite;
-      case VoteValue.maybe: return Icons.touch_app;
-      case VoteValue.no: return Icons.close;
-    }
-  }
-
-  Color _getVoteColor(VoteValue vote) {
-    switch (vote) {
-      case VoteValue.yes: return const Color(0xFF4CAF50);
-      case VoteValue.maybe: return const Color(0xFFFF9800);
-      case VoteValue.no: return Colors.grey;
-    }
-  }
-
-  String _voteLabel(VoteValue vote) {
-    switch (vote) {
-      case VoteValue.yes: return 'Yes';
-      case VoteValue.maybe: return 'Maybe';
-      case VoteValue.no: return 'No';
     }
   }
 
@@ -592,7 +552,6 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
 
   Widget _buildRevealScreen(AppLocalizations l10n, Color primaryColor) {
     final matches = _getMatches();
-    final allCards = _getAllCardsWithVotes();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FF),
@@ -633,57 +592,27 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
               );
             },
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.adaptSize, vertical: 12.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildToggleChip(
-                    label: 'Matches (${matches.length})',
-                    selected: !_showFullHistory,
-                    color: primaryColor,
-                    onTap: () => setState(() => _showFullHistory = false),
-                  ),
-                ),
-                SizedBox(width: 12.adaptSize),
-                Expanded(
-                  child: _buildToggleChip(
-                    label: 'All Cards (${_cards.length})',
-                    selected: _showFullHistory,
-                    color: Colors.grey,
-                    onTap: () => setState(() => _showFullHistory = true),
-                  ),
-                ),
-              ],
-            ),
-          ),
           Expanded(
-            child: _showFullHistory
-                ? ListView.builder(
-                    padding: EdgeInsets.symmetric(horizontal: 20.adaptSize),
-                    itemCount: allCards.length,
-                    itemBuilder: (context, index) => _buildFullHistoryCard(l10n, allCards[index], primaryColor, index),
-                  )
-                : matches.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32.adaptSize),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.search_off, size: 80.adaptSize, color: Colors.grey.shade400),
-                              SizedBox(height: 16.h),
-                              Text(l10n.translate('no_matches_yet'),
-                                style: TextStyle(fontSize: 20.fSize, color: Colors.grey.shade500)),
-                            ],
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: EdgeInsets.symmetric(horizontal: 20.adaptSize),
-                        itemCount: matches.length,
-                        itemBuilder: (context, index) => _buildMatchCard(l10n, matches[index], primaryColor),
+            child: matches.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.adaptSize),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off, size: 80.adaptSize, color: Colors.grey.shade400),
+                          SizedBox(height: 16.h),
+                          Text(l10n.translate('no_matches_yet'),
+                            style: TextStyle(fontSize: 20.fSize, color: Colors.grey.shade500)),
+                        ],
                       ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: 20.adaptSize),
+                    itemCount: matches.length,
+                    itemBuilder: (context, index) => _buildMatchCard(l10n, matches[index], primaryColor),
+                  ),
           ),
           Container(
             padding: EdgeInsets.all(20.adaptSize),
@@ -707,34 +636,8 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
     );
   }
 
-  Widget _buildToggleChip({required String label, required bool selected, required Color color, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12.adaptSize),
-          border: Border.all(color: selected ? color : Colors.grey.shade300),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13.fSize,
-              fontWeight: FontWeight.w600,
-              color: selected ? color : Colors.grey.shade600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildMatchCard(AppLocalizations l10n, Map<String, dynamic> match, Color primaryColor) {
     final card = match['card'] as GameQuestion;
-    final aVote = match['aVote'] as VoteValue;
-    final bVote = match['bVote'] as VoteValue;
     final cardColor = _getCardColor(card.category);
 
     return Container(
@@ -766,119 +669,13 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
             card.getLocalizedQuestion(Localizations.localeOf(context).languageCode),
             style: TextStyle(fontSize: 16.fSize, fontWeight: FontWeight.w600, color: const Color(0xFF1F2933)),
           ),
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              _buildVoteChip(_player1Name, aVote),
-              SizedBox(width: 8.adaptSize),
-              _buildVoteChip(_player2Name, bVote),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFullHistoryCard(AppLocalizations l10n, Map<String, dynamic> item, Color primaryColor, int index) {
-    final card = item['card'] as GameQuestion;
-    final aVote = item['aVote'] as VoteValue?;
-    final bVote = item['bVote'] as VoteValue?;
-    final isMatch = item['isMatch'] as bool;
-    final cardColor = _getCardColor(card.category);
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.adaptSize),
-      padding: EdgeInsets.all(16.adaptSize),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14.adaptSize),
-        border: Border.all(color: isMatch ? primaryColor.withOpacity(0.3) : Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.adaptSize, vertical: 2.adaptSize),
-                decoration: BoxDecoration(color: cardColor.withOpacity(0.12), borderRadius: BorderRadius.circular(8.adaptSize)),
-                child: Text('#${index + 1}', style: TextStyle(fontSize: 10.fSize, fontWeight: FontWeight.bold, color: cardColor)),
-              ),
-              SizedBox(width: 8.adaptSize),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.adaptSize, vertical: 2.adaptSize),
-                decoration: BoxDecoration(
-                  color: isMatch ? primaryColor.withOpacity(0.12) : Colors.grey.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8.adaptSize),
-                ),
-                child: Text(
-                  isMatch ? 'Match' : 'No Match',
-                  style: TextStyle(fontSize: 10.fSize, fontWeight: FontWeight.bold, color: isMatch ? primaryColor : Colors.grey),
-                ),
-              ),
-              if (card.category != null) ...[
-                SizedBox(width: 8.adaptSize),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.adaptSize, vertical: 2.adaptSize),
-                  decoration: BoxDecoration(color: cardColor.withOpacity(0.12), borderRadius: BorderRadius.circular(8.adaptSize)),
-                  child: Text(card.category!.toUpperCase(),
-                    style: TextStyle(fontSize: 9.fSize, fontWeight: FontWeight.bold, color: cardColor)),
-                ),
-              ],
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            card.getLocalizedQuestion(Localizations.localeOf(context).languageCode),
-            style: TextStyle(fontSize: 14.fSize, fontWeight: FontWeight.w500, color: const Color(0xFF1F2933)),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              _buildMiniVoteChip(_player1Name, aVote),
-              SizedBox(width: 12.adaptSize),
-              _buildMiniVoteChip(_player2Name, bVote),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVoteChip(String name, VoteValue vote) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.adaptSize, vertical: 4.adaptSize),
-      decoration: BoxDecoration(color: _getVoteColor(vote).withOpacity(0.15), borderRadius: BorderRadius.circular(12.adaptSize)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getVoteIcon(vote), size: 14.adaptSize, color: _getVoteColor(vote)),
-          SizedBox(width: 4.adaptSize),
-          Text(name, style: TextStyle(fontSize: 12.fSize, color: _getVoteColor(vote), fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniVoteChip(String name, VoteValue? vote) {
-    if (vote == null) {
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.adaptSize, vertical: 3.adaptSize),
-        decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(8.adaptSize)),
-        child: Text('$name: —', style: TextStyle(fontSize: 11.fSize, color: Colors.grey.shade400, fontWeight: FontWeight.w500)),
-      );
-    }
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.adaptSize, vertical: 3.adaptSize),
-      decoration: BoxDecoration(color: _getVoteColor(vote).withOpacity(0.12), borderRadius: BorderRadius.circular(8.adaptSize)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_getVoteIcon(vote), size: 12.adaptSize, color: _getVoteColor(vote)),
-          SizedBox(width: 3.adaptSize),
-          Text('$name: ${_voteLabel(vote)}',
-            style: TextStyle(fontSize: 11.fSize, color: _getVoteColor(vote), fontWeight: FontWeight.w500)),
+          if (card.description != null) ...[
+            SizedBox(height: 8.h),
+            Text(
+              card.getLocalizedDescription(Localizations.localeOf(context).languageCode) ?? '',
+              style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade600, height: 1.3),
+            ),
+          ],
         ],
       ),
     );

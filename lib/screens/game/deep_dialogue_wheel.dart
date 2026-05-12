@@ -106,7 +106,9 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   late AnimationController _spinController;
   late Animation<double> _spinAnimation;
   double _currentAngle = 0;
+  double _randomSpinTarget = 0;
   bool _isSpinning = false;
+  bool _showCategoryResult = false;
   int? _selectedCategoryIndex;
   String? _currentQuestion;
   String? _currentCategory;
@@ -145,8 +147,9 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
 
   Future<void> _initializeGame() async {
     try {
-      _sessionId =
-          await _gameService.startGameSessionById('deep_dialogue_wheel');
+      _sessionId = await _gameService.startGameSessionById(
+        'deep_dialogue_wheel',
+      );
       setState(() => _isLoading = false);
     } catch (e) {
       setState(() => _isLoading = false);
@@ -160,7 +163,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
 
   void _onSpinUpdate() {
     setState(() {
-      _currentAngle = _spinAnimation.value * 2 * pi * 5;
+      _currentAngle = _spinAnimation.value * 2 * pi * 5 + _randomSpinTarget;
     });
   }
 
@@ -168,22 +171,28 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     if (status == AnimationStatus.completed) {
       final categoryIndex = _determineCategory();
       final category = _categories[categoryIndex];
+      _categoriesAppeared.add(category.id);
       setState(() {
         _isSpinning = false;
         _selectedCategoryIndex = categoryIndex;
         _currentCategory = category.id;
+        _showCategoryResult = true;
       });
-      _categoriesAppeared.add(category.id);
       VibrationService.longVibration();
-      _generateQuestion(category.id);
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          setState(() => _showCategoryResult = false);
+          _generateQuestion(category.id);
+        }
+      });
     }
   }
 
   int _determineCategory() {
-    final finalAngle = _currentAngle % (2 * pi);
+    final finalAngle = (_currentAngle % (2 * pi) + 2 * pi) % (2 * pi);
     final segmentAngle = (2 * pi) / _categories.length;
-    int index = (finalAngle / segmentAngle).floor();
-    if (index >= _categories.length) index = 0;
+    int index = ((-finalAngle / segmentAngle).floor()) % _categories.length;
+    if (index < 0) index += _categories.length;
     if (_categories[index].id == _currentCategory && _roundsPlayed > 0) {
       index = (index + 1) % _categories.length;
     }
@@ -191,26 +200,29 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   }
 
   Future<void> _generateQuestion(String categoryId) async {
-    final question =
-        await _questionsService.generateWheelQuestion(categoryId);
+    final question = await _questionsService.generateWheelQuestion(categoryId);
     if (question != null && mounted) {
       setState(() {
         _currentQuestion = question.question;
       });
     } else if (mounted) {
       setState(() {
-        _currentQuestion = 'What is something you appreciate about our relationship right now?';
+        _currentQuestion =
+            'What is something you appreciate about our relationship right now?';
       });
     }
   }
 
   void _spin() {
     if (_isSpinning || _roundsPlayed >= _maxRounds) return;
+    final random = Random();
+    _randomSpinTarget = 2 * pi * random.nextDouble();
     setState(() {
       _isSpinning = true;
       _currentQuestion = null;
       _selectedCategoryIndex = null;
       _currentCategory = null;
+      _showCategoryResult = false;
     });
     VibrationService.doubleVibration();
     _spinController.forward(from: 0);
@@ -219,11 +231,13 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   void _nextSpin() {
     if (_currentQuestion == null || _currentCategory == null) return;
 
-    _sessionHistory.add(_SessionEntry(
-      spinNumber: _roundsPlayed + 1,
-      category: _currentCategory!,
-      question: _currentQuestion!,
-    ));
+    _sessionHistory.add(
+      _SessionEntry(
+        spinNumber: _roundsPlayed + 1,
+        category: _currentCategory!,
+        question: _currentQuestion!,
+      ),
+    );
 
     if (_roundsPlayed >= _maxRounds - 1) {
       _saveSessionToLocal();
@@ -243,7 +257,8 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   Future<void> _saveSessionToLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final historyKey = 'wheel_session_${DateTime.now().millisecondsSinceEpoch}';
+      final historyKey =
+          'wheel_session_${DateTime.now().millisecondsSinceEpoch}';
       final data = _sessionHistory.map((e) => e.toJson()).toList();
       await prefs.setString(historyKey, jsonEncode(data));
     } catch (e) {
@@ -474,129 +489,216 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
         title: Text(l10n.translate('deep_dialogue_wheel')),
         elevation: 0,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          GameProgressIndicator(
-            gameId: 'deep_dialogue_wheel',
-            current: _roundsPlayed + 1,
-            total: _maxRounds,
-            color: defaultColor,
-            label:
-                '${l10n.translate('spin')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
-            trailingWidget: Text(
-              '$_player1Name & $_player2Name',
-              style: TextStyle(
-                fontSize: 13.fSize,
+          Column(
+            children: [
+              GameProgressIndicator(
+                gameId: 'deep_dialogue_wheel',
+                current: _roundsPlayed + 1,
+                total: _maxRounds,
                 color: defaultColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 300.adaptSize,
-                    height: 300.adaptSize,
-                    child: GestureDetector(
-                      onTap: _isSpinning ? null : _spin,
-                      child: AnimatedBuilder(
-                        animation: _spinAnimation,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: _currentAngle,
-                            child: child,
-                          );
-                        },
-                        child: CustomPaint(
-                          size: Size(300.adaptSize, 300.adaptSize),
-                          painter: _WheelPainter(
-                            categories: _categories,
-                            selectedIndex: _selectedCategoryIndex,
-                            appearedCategories: _categoriesAppeared,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                  Text(
-                    _isSpinning
-                        ? l10n.translate('spinning')
-                        : l10n.translate('tap_wheel_or_button'),
-                    style: TextStyle(
-                      fontSize: 16.fSize,
-                      color: Colors.grey.shade600,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    '${l10n.translate('round')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
-                    style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade400),
-                  ),
-                  if (_spinAgainMode)
-                    Padding(
-                      padding: EdgeInsets.only(top: 8.h),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.adaptSize,
-                          vertical: 4.adaptSize,
-                        ),
-                        decoration: BoxDecoration(
-                          color: defaultColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.adaptSize),
-                        ),
-                        child: Text(
-                          l10n.translate('spin_again_session'),
-                          style: TextStyle(
-                            fontSize: 12.fSize,
-                            color: defaultColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.all(20.adaptSize),
-            color: Colors.white,
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isSpinning ? null : _spin,
-                icon: Icon(
-                  Icons.touch_app,
-                  color: _isSpinning ? Colors.grey : Colors.white,
-                ),
-                label: Text(
-                  _isSpinning
-                      ? l10n.translate('spinning')
-                      : (_roundsPlayed == 0
-                          ? l10n.translate('first_spin')
-                          : l10n.translate('spin_again')),
+                label:
+                    '${l10n.translate('spin')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
+                trailingWidget: Text(
+                  '$_player1Name & $_player2Name',
                   style: TextStyle(
-                    fontSize: 18.fSize,
-                    color: _isSpinning ? Colors.grey : Colors.white,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      _isSpinning ? Colors.grey.shade300 : defaultColor,
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.adaptSize),
+                    fontSize: 13.fSize,
+                    color: defaultColor,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 300.adaptSize,
+                        height: 300.adaptSize,
+                        child: GestureDetector(
+                          onTap: _isSpinning ? null : _spin,
+                          child: AnimatedBuilder(
+                            animation: _spinAnimation,
+                            builder: (context, child) {
+                              return CustomPaint(
+                                size: Size(300.adaptSize, 300.adaptSize),
+                                painter: _WheelPainter(
+                                  categories: _categories,
+                                  selectedIndex: _selectedCategoryIndex,
+                                  appearedCategories: _categoriesAppeared,
+                                  rotationAngle: _currentAngle,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+                      Text(
+                        _isSpinning
+                            ? l10n.translate('spinning')
+                            : l10n.translate('tap_wheel_or_button'),
+                        style: TextStyle(
+                          fontSize: 16.fSize,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      if (_selectedCategoryIndex != null) ...[
+                        SizedBox(height: 8.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.adaptSize,
+                            vertical: 6.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _categories[_selectedCategoryIndex!].color
+                                .withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20.adaptSize),
+                          ),
+                          child: Text(
+                            '${_categories[_selectedCategoryIndex!].emoji} ${_categories[_selectedCategoryIndex!].label}',
+                            style: TextStyle(
+                              fontSize: 14.fSize,
+                              fontWeight: FontWeight.bold,
+                              color: _categories[_selectedCategoryIndex!].color,
+                            ),
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 8.h),
+                      Text(
+                        '${l10n.translate('round')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
+                        style: TextStyle(
+                          fontSize: 14.fSize,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                      if (_spinAgainMode)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8.h),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.adaptSize,
+                              vertical: 4.adaptSize,
+                            ),
+                            decoration: BoxDecoration(
+                              color: defaultColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12.adaptSize),
+                            ),
+                            child: Text(
+                              l10n.translate('spin_again_session'),
+                              style: TextStyle(
+                                fontSize: 12.fSize,
+                                color: defaultColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(20.adaptSize),
+                color: Colors.white,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSpinning ? null : _spin,
+                    icon: Icon(
+                      Icons.touch_app,
+                      color: _isSpinning ? Colors.grey : Colors.white,
+                    ),
+                    label: Text(
+                      _isSpinning
+                          ? l10n.translate('spinning')
+                          : (_roundsPlayed == 0
+                                ? l10n.translate('first_spin')
+                                : l10n.translate('spin_again')),
+                      style: TextStyle(
+                        fontSize: 18.fSize,
+                        color: _isSpinning ? Colors.grey : Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isSpinning
+                          ? Colors.grey.shade300
+                          : defaultColor,
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.adaptSize),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (_showCategoryResult && _selectedCategoryIndex != null)
+            _buildCategoryResultOverlay(l10n),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryResultOverlay(AppLocalizations l10n) {
+    final cat = _categories[_selectedCategoryIndex!];
+    return Container(
+      color: Colors.black.withOpacity(0.6),
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.elasticOut,
+          builder: (context, scale, child) {
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                margin: EdgeInsets.all(40.adaptSize),
+                padding: EdgeInsets.all(32.adaptSize),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24.adaptSize),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cat.color.withOpacity(0.4),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(cat.emoji, style: TextStyle(fontSize: 64.adaptSize)),
+                    SizedBox(height: 16.h),
+                    Text(
+                      cat.label,
+                      style: TextStyle(
+                        fontSize: 24.fSize,
+                        fontWeight: FontWeight.bold,
+                        color: cat.color,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      l10n.translate('selected'),
+                      style: TextStyle(
+                        fontSize: 14.fSize,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -810,12 +912,19 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
-              24.adaptSize, 20.adaptSize, 24.adaptSize, 20.adaptSize,
+              24.adaptSize,
+              20.adaptSize,
+              24.adaptSize,
+              20.adaptSize,
             ),
             color: defaultColor.withOpacity(0.1),
             child: Column(
               children: [
-                Icon(Icons.auto_stories, size: 48.adaptSize, color: defaultColor),
+                Icon(
+                  Icons.auto_stories,
+                  size: 48.adaptSize,
+                  color: defaultColor,
+                ),
                 SizedBox(height: 8.h),
                 Text(
                   l10n.translate('your_session'),
@@ -828,7 +937,10 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                 SizedBox(height: 4.h),
                 Text(
                   '$_player1Name & $_player2Name  |  $_maxRounds ${l10n.translate('spins')}',
-                  style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 14.fSize,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),
@@ -850,9 +962,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16.adaptSize),
-                    border: Border.all(
-                      color: cat.color.withOpacity(0.2),
-                    ),
+                    border: Border.all(color: cat.color.withOpacity(0.2)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.03),
@@ -971,11 +1081,13 @@ class _WheelPainter extends CustomPainter {
   final List<_CategoryData> categories;
   final int? selectedIndex;
   final Set<String> appearedCategories;
+  final double rotationAngle;
 
   _WheelPainter({
     required this.categories,
     this.selectedIndex,
     this.appearedCategories = const {},
+    this.rotationAngle = 0,
   });
 
   @override
@@ -985,9 +1097,10 @@ class _WheelPainter extends CustomPainter {
     final segmentAngle = (2 * pi) / categories.length;
 
     for (int i = 0; i < categories.length; i++) {
-      final startAngle = i * segmentAngle - pi / 2;
+      final startAngle = i * segmentAngle - pi / 2 + rotationAngle;
       final cat = categories[i];
       final hasAppeared = appearedCategories.contains(cat.id);
+      final isSelected = selectedIndex == i;
 
       final paint = Paint()
         ..color = hasAppeared
@@ -1006,9 +1119,18 @@ class _WheelPainter extends CustomPainter {
       path.close();
       canvas.drawPath(path, paint);
 
+      // Highlight selected segment with thicker border + glow
+      if (isSelected) {
+        final glowPaint = Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4;
+        canvas.drawPath(path, glowPaint);
+      }
+
       // Draw separator lines
       final borderPaint = Paint()
-        ..color = Colors.white
+        ..color = Colors.white.withOpacity(isSelected ? 0 : 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawPath(path, borderPaint);
@@ -1022,7 +1144,12 @@ class _WheelPainter extends CustomPainter {
       final textPainter = TextPainter(
         text: TextSpan(
           text: cat.emoji,
-          style: TextStyle(fontSize: 24),
+          style: TextStyle(
+            fontSize: isSelected ? 30 : 24,
+            shadows: isSelected
+                ? [Shadow(color: Colors.white54, blurRadius: 12)]
+                : null,
+          ),
         ),
         textDirection: TextDirection.ltr,
       );
@@ -1038,9 +1165,9 @@ class _WheelPainter extends CustomPainter {
         text: TextSpan(
           text: shortLabel,
           style: TextStyle(
-            fontSize: 9,
+            fontSize: isSelected ? 11 : 9,
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+            fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -1048,22 +1175,33 @@ class _WheelPainter extends CustomPainter {
       labelTextPainter.layout();
       labelTextPainter.paint(
         canvas,
-        Offset(
-          labelX - labelTextPainter.width / 2,
-          labelY + 16,
-        ),
+        Offset(labelX - labelTextPainter.width / 2, labelY + 16),
       );
     }
 
-    // Draw pointer triangle at top
-    final pointerPaint = Paint()..color = Colors.white;
+    // Draw pointer triangle at ~35% from right side, rotated toward wheel center
+    final pointerPaint = Paint()
+      ..color = const Color(0xFFFF6B9D)
+      ..style = PaintingStyle.fill;
+    final pointerBorderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    final double pointerOffset = radius * (-0.5);
+    final double pointerY = center.dy - radius - (-5);
+    final double angleToCenter = atan2(radius + 12, -pointerOffset);
+    canvas.save();
+    canvas.translate(center.dx + pointerOffset, pointerY);
+    canvas.rotate(angleToCenter - pi / 2);
     final pathPointer = Path();
-    pathPointer.moveTo(center.dx - 12, center.dy - radius - 8);
-    pathPointer.lineTo(center.dx + 12, center.dy - radius - 8);
-    pathPointer.lineTo(center.dx, center.dy - radius - 24);
+    pathPointer.moveTo(-18, -14);
+    pathPointer.lineTo(18, -14);
+    pathPointer.lineTo(0, 16);
     pathPointer.close();
     canvas.drawPath(pathPointer, pointerPaint);
-    canvas.drawShadow(pathPointer, Colors.black26, 4, false);
+    canvas.drawPath(pathPointer, pointerBorderPaint);
+    canvas.restore();
+    canvas.drawShadow(pathPointer, Colors.black54, 6, false);
 
     // Draw center circle
     final centerPaint = Paint()..color = Colors.white;
