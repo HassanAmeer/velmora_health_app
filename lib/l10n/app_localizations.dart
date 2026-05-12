@@ -546,6 +546,42 @@ class AppLocalizations {
       'player_2': 'Player 2',
       'start_game': 'Start Game',
       'next_question': 'Next Question',
+      'match_and_reveal': 'Match & Reveal',
+      'match_and_reveal_desc': 'Discover shared desires through private voting',
+      'deep_dialogue_wheel': 'Deep Dialogue Wheel',
+      'deep_dialogue_wheel_desc': 'Spin the wheel for meaningful conversations',
+      'card': 'Card',
+      'turn': 'Turn',
+      'vote_privately': 'Vote privately',
+      'maybe': 'Maybe',
+      'done_voting': 'Done voting',
+      'now_its': 'Now it\'s {name}\'s turn',
+      'hand_phone_to_partner': 'Hand the phone to your partner',
+      'start_partner_turn': 'Start Partner\'s Turn',
+      'your_matches': 'Your Matches',
+      'matches_found': 'matches found',
+      'no_matches_yet': 'No matches yet',
+      'done_exploring': 'Done Exploring',
+      'great_exploring': 'Great Exploring!',
+      'activity': 'Activity',
+      'wheel_name_subtitle': 'Both partners sit together and take turns spinning',
+      'wonderful_discussions': 'Wonderful Discussions!',
+      'thank_you_spinning': 'Thank you for sharing this time together',
+      'spin': 'Spin',
+      'spinning': 'Spinning...',
+      'tap_wheel_or_button': 'Tap the wheel or button to spin',
+      'spin_again_session': 'Spin Again Session',
+      'first_spin': 'First Spin',
+      'spin_again': 'Spin Again',
+      'discuss_together': 'Discuss together',
+      'answer_out_loud': 'Both answer out loud together',
+      'view_summary': 'View Summary',
+      'next_spin': 'Next Spin',
+      'session_summary': 'Session Summary',
+      'your_session': 'Your Session',
+      'spins': 'spins',
+      'spin_again_new_session': 'Spin Again — New Session',
+      'end_session': 'End Session',
       'finish': 'Finish',
       'game_complete': 'Game Complete!',
       'play_another': 'Play Another Game',
@@ -1213,6 +1249,42 @@ class AppLocalizations {
       'player_2': 'اللاعب 2',
       'next_question': 'السؤال التالي',
       'finish': 'إنهاء',
+      'match_and_reveal': 'طابق واكشف',
+      'match_and_reveal_desc': 'اكتشف الرغبات المشتركة من خلال التصويت الخاص',
+      'deep_dialogue_wheel': 'عجلة الحوار العميق',
+      'deep_dialogue_wheel_desc': 'دور العجلة لمحادثات هادفة',
+      'card': 'بطاقة',
+      'turn': 'دور',
+      'vote_privately': 'صوّت بصورة خاصة',
+      'maybe': 'ربما',
+      'done_voting': 'انتهى التصويت',
+      'now_its': 'الآن دور {name}',
+      'hand_phone_to_partner': 'سلّم الهاتف لشريكك',
+      'start_partner_turn': 'ابدأ دور الشريك',
+      'your_matches': 'تطابقاتك',
+      'matches_found': 'تطابق موجود',
+      'no_matches_yet': 'لا توجد تطابقات بعد',
+      'done_exploring': 'انتهى الاستكشاف',
+      'great_exploring': 'استكشاف رائع!',
+      'activity': 'نشاط',
+      'wheel_name_subtitle': 'يجلس كلا الشريكين معاً ويتناوبان على الدوران',
+      'wonderful_discussions': 'مناقشات رائعة!',
+      'thank_you_spinning': 'شكراً لمشاركتكما هذه اللحظات معاً',
+      'spin': 'دوران',
+      'spinning': 'جارٍ الدوران...',
+      'tap_wheel_or_button': 'اضغط على العجلة أو الزر للدوران',
+      'spin_again_session': 'جلسة دوران جديدة',
+      'first_spin': 'الدوران الأول',
+      'spin_again': 'دور مجدداً',
+      'discuss_together': 'ناقشا معاً',
+      'answer_out_loud': 'كلاكما يجيب بصوت عالٍ معاً',
+      'view_summary': 'عرض الملخص',
+      'next_spin': 'الدوران التالي',
+      'session_summary': 'ملخص الجلسة',
+      'your_session': 'جلستان',
+      'spins': 'دورات',
+      'spin_again_new_session': 'دور مجدداً — جلسة جديدة',
+      'end_session': 'إنهاء الجلسة',
       'play_another': 'العب لعبة أخرى',
 
       // Common
@@ -1850,6 +1922,42 @@ class AppLocalizations {
       'player_2': 'Joueur 2',
       'next_question': 'Question suivante',
       'finish': 'Terminer',
+      'match_and_reveal': 'Correspondance & Révélation',
+      'match_and_reveal_desc': 'Découvrez vos désirs communs par vote privé',
+      'deep_dialogue_wheel': 'Roue du Dialogue Profond',
+      'deep_dialogue_wheel_desc': 'Faites tourner la roue pour des conversations profondes',
+      'card': 'Carte',
+      'turn': 'Tour',
+      'vote_privately': 'Votez en privé',
+      'maybe': 'Peut-être',
+      'done_voting': 'Vote terminé',
+      'now_its': 'C\'est au tour de {name}',
+      'hand_phone_to_partner': 'Passez le téléphone à votre partenaire',
+      'start_partner_turn': 'Commencer le tour du partenaire',
+      'your_matches': 'Vos correspondances',
+      'matches_found': 'correspondances trouvées',
+      'no_matches_yet': 'Aucune correspondance pour le moment',
+      'done_exploring': 'Exploration terminée',
+      'great_exploring': 'Belle exploration !',
+      'activity': 'Activité',
+      'wheel_name_subtitle': 'Les deux partenaires s\'assoient ensemble et font tourner à tour de rôle',
+      'wonderful_discussions': 'Merveilleuses discussions !',
+      'thank_you_spinning': 'Merci d\'avoir partagé ce moment ensemble',
+      'spin': 'Tour',
+      'spinning': 'En rotation...',
+      'tap_wheel_or_button': 'Tapez sur la roue ou le bouton pour tourner',
+      'spin_again_session': 'Nouvelle session de rotation',
+      'first_spin': 'Premier tour',
+      'spin_again': 'Tourner à nouveau',
+      'discuss_together': 'Discutez ensemble',
+      'answer_out_loud': 'Les deux répondent à voix haute ensemble',
+      'view_summary': 'Voir le résumé',
+      'next_spin': 'Tour suivant',
+      'session_summary': 'Résumé de la session',
+      'your_session': 'Votre session',
+      'spins': 'tours',
+      'spin_again_new_session': 'Tourner à nouveau — Nouvelle session',
+      'end_session': 'Terminer la session',
       'play_another': 'Jouer à un autre jeu',
 
       // Common
@@ -2334,6 +2442,43 @@ class AppLocalizations {
   String get mixedControlSet => translate('mixed_control_set');
   String get basicRoutine => translate('basic_routine');
   String get pulses => translate('pulses');
+
+  // Match & Reveal
+  String get matchAndReveal => translate('match_and_reveal');
+  String get card => translate('card');
+  String get votePrivately => translate('vote_privately');
+  String get maybe => translate('maybe');
+  String get doneVoting => translate('done_voting');
+  String nowIts(Object name) => translate('now_its').replaceFirst('{name}', name.toString());
+  String get handPhoneToPartner => translate('hand_phone_to_partner');
+  String get startPartnerTurn => translate('start_partner_turn');
+  String get yourMatches => translate('your_matches');
+  String get matchesFound => translate('matches_found');
+  String get noMatchesYet => translate('no_matches_yet');
+  String get doneExploring => translate('done_exploring');
+  String get greatExploring => translate('great_exploring');
+  String get activityLabel => translate('activity');
+
+  // Deep Dialogue Wheel
+  String get deepDialogueWheel => translate('deep_dialogue_wheel');
+  String get wheelNameSubtitle => translate('wheel_name_subtitle');
+  String get wonderfulDiscussions => translate('wonderful_discussions');
+  String get thankYouSpinning => translate('thank_you_spinning');
+  String get spinLabel => translate('spin');
+  String get spinningLabel => translate('spinning');
+  String get tapWheelOrButton => translate('tap_wheel_or_button');
+  String get spinAgainSession => translate('spin_again_session');
+  String get firstSpin => translate('first_spin');
+  String get spinAgain => translate('spin_again');
+  String get discussTogether => translate('discuss_together');
+  String get answerOutLoud => translate('answer_out_loud');
+  String get viewSummary => translate('view_summary');
+  String get nextSpin => translate('next_spin');
+  String get sessionSummary => translate('session_summary');
+  String get yourSession => translate('your_session');
+  String get spinsLabel => translate('spins');
+  String get spinAgainNewSession => translate('spin_again_new_session');
+  String get endSession => translate('end_session');
 }
 
 class _AppLocalizationsDelegate
