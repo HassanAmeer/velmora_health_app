@@ -252,6 +252,12 @@ Return as JSON array with format: [{"question": "...", $translationFormat, "opti
         return '''Generate 10 compliment prompts to help partners express appreciation.
 Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_translations": {"en": "...", "ar": "...", "fr": "..."}, "hint_translations": {"en": "...", "ar": "...", "fr": "..."}}]''';
 
+      case 'match_and_reveal':
+        return '''Generate 12 unique, non-repetitive romantic/intimacy activity ideas for a married couple. Categorize each by intensity (Soft, Adventurous, Deep). Include a brief description of each activity. Ensure variety to avoid boredom. Output in strict JSON array format with each item having: "question" (activity name), "description" (brief description), "category" (Soft/Adventurous/Deep), and "question_translations" with en/ar/fr translations for the activity name, "description_translations" with en/ar/fr translations for the description.''';
+
+      case 'deep_dialogue_wheel':
+        return '''Generate 18 thought-provoking conversation starters for couples. Each must be categorized into one of: emotional_connection, future_dreams, conflict_resolution, playful_memories, gratitude, adventure (3 per category). Questions should encourage "I feel" statements and avoid blame. Keep them short and engaging, suitable for deepening intimacy. Output in strict JSON array format with each item having: "question" (the question text), "category" (one of the 6 category IDs), and "question_translations" with en/ar/fr translations.''';
+
       default:
         return 'Generate 10 meaningful questions for couples with English, Arabic, and French translations.';
     }
@@ -1674,6 +1680,356 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
                 },
               },
             ],
+          },
+        ];
+
+      case 'match_and_reveal':
+        return [
+          {
+            'question': 'Candlelit Dinner at Home',
+            'description': 'Cook a romantic dinner together and set up candles',
+            'category': 'Soft',
+            'question_translations': {
+              'en': 'Candlelit Dinner at Home',
+              'ar': 'عشاء على ضوء الشموع في المنزل',
+              'fr': 'Dîner aux chandelles à la maison',
+            },
+            'description_translations': {
+              'en': 'Cook a romantic dinner together and set up candles',
+              'ar': 'اطبخا عشاء رومانسياً معاً ورتبا الشموع',
+              'fr': 'Préparez un dîner romantique ensemble et disposez des bougies',
+            },
+          },
+          {
+            'question': 'Weekend Getaway',
+            'description': 'Escape to a nearby town for a spontaneous trip',
+            'category': 'Adventurous',
+            'question_translations': {
+              'en': 'Weekend Getaway',
+              'ar': 'رحلة نهاية الأسبوع',
+              'fr': 'Escapade de week-end',
+            },
+            'description_translations': {
+              'en': 'Escape to a nearby town for a spontaneous trip',
+              'ar': 'اهربا إلى بلدة قريبة في رحلة عفوية',
+              'fr': 'Évadez-vous dans une ville voisine pour un voyage spontané',
+            },
+          },
+          {
+            'question': 'Deep Conversation Night',
+            'description': 'Ask each other meaningful questions about life',
+            'category': 'Deep',
+            'question_translations': {
+              'en': 'Deep Conversation Night',
+              'ar': 'ليلة محادثة عميقة',
+              'fr': 'Soirée de conversation profonde',
+            },
+            'description_translations': {
+              'en': 'Ask each other meaningful questions about life',
+              'ar': 'اسألا بعضكما أسئلة ذات معنى عن الحياة',
+              'fr': 'Posez-vous des questions profondes sur la vie',
+            },
+          },
+          {
+            'question': 'Stargazing on the Rooftop',
+            'description': 'Lie under the stars and share your dreams',
+            'category': 'Soft',
+            'question_translations': {
+              'en': 'Stargazing on the Rooftop',
+              'ar': 'مراقبة النجوم على السطح',
+              'fr': 'Observation des étoiles sur le toit',
+            },
+            'description_translations': {
+              'en': 'Lie under the stars and share your dreams',
+              'ar': 'استلقيا تحت النجوم وشاركا أحلامكما',
+              'fr': 'Allongez-vous sous les étoiles et partagez vos rêves',
+            },
+          },
+          {
+            'question': 'Dance Class Together',
+            'description': 'Learn a sensual dance like bachata or tango',
+            'category': 'Adventurous',
+            'question_translations': {
+              'en': 'Dance Class Together',
+              'ar': 'درس رقص معاً',
+              'fr': 'Cours de danse ensemble',
+            },
+            'description_translations': {
+              'en': 'Learn a sensual dance like bachata or tango',
+              'ar': 'تعلما رقصة عاطفية مثل الباتشاتا أو التانغو',
+              'fr': 'Apprenez une danse sensuelle comme la bachata ou le tango',
+            },
+          },
+          {
+            'question': 'Write Love Letters',
+            'description': 'Express your deepest feelings in a handwritten letter',
+            'category': 'Deep',
+            'question_translations': {
+              'en': 'Write Love Letters',
+              'ar': 'اكتبا رسائل حب',
+              'fr': 'Écrivez des lettres d\'amour',
+            },
+            'description_translations': {
+              'en': 'Express your deepest feelings in a handwritten letter',
+              'ar': 'عبرا عن أعمق مشاعركما في رسالة مكتوبة بخط اليد',
+              'fr': 'Exprimez vos sentiments les plus profonds dans une lettre manuscrite',
+            },
+          },
+          {
+            'question': 'Couples Spa Night',
+            'description': 'Give each other massages with essential oils',
+            'category': 'Soft',
+            'question_translations': {
+              'en': 'Couples Spa Night',
+              'ar': 'ليلة سبا للزوجين',
+              'fr': 'Soirée spa en couple',
+            },
+            'description_translations': {
+              'en': 'Give each other massages with essential oils',
+              'ar': 'قدما لبعضكما تدليكاً بالزيوت العطرية',
+              'fr': 'Offrez-vous des massages aux huiles essentielles',
+            },
+          },
+          {
+            'question': 'Try an Extreme Sport',
+            'description': 'Bungee jump, skydive, or go kart racing',
+            'category': 'Adventurous',
+            'question_translations': {
+              'en': 'Try an Extreme Sport',
+              'ar': 'جربا رياضة خطيرة',
+              'fr': 'Essayez un sport extrême',
+            },
+            'description_translations': {
+              'en': 'Bungee jump, skydive, or go kart racing',
+              'ar': 'القفز بالحبال، القفز بالمظلات، أو سباق الكارتينغ',
+              'fr': 'Saut à l\'élastique, saut en parachute ou course de karting',
+            },
+          },
+          {
+            'question': 'Share Your Biggest Fear',
+            'description': 'Open up about what scares you most in your relationship',
+            'category': 'Deep',
+            'question_translations': {
+              'en': 'Share Your Biggest Fear',
+              'ar': 'شاركا أكبر مخاوفكما',
+              'fr': 'Partagez votre plus grande peur',
+            },
+            'description_translations': {
+              'en': 'Open up about what scares you most in your relationship',
+              'ar': 'تحدثا عما يخيفكما أكثر في علاقتكما',
+              'fr': 'Parlez de ce qui vous fait le plus peur dans votre relation',
+            },
+          },
+          {
+            'question': 'Sunrise Hike',
+            'description': 'Wake up early and watch the sunrise from a mountain',
+            'category': 'Adventurous',
+            'question_translations': {
+              'en': 'Sunrise Hike',
+              'ar': 'نزهة شروق الشمس',
+              'fr': 'Randonnée au lever du soleil',
+            },
+            'description_translations': {
+              'en': 'Wake up early and watch the sunrise from a mountain',
+              'ar': 'استيقظا مبكراً وشاهدا شروق الشمس من الجبل',
+              'fr': 'Levez-vous tôt et regardez le lever du soleil depuis une montagne',
+            },
+          },
+          {
+            'question': 'Create a Bucket List',
+            'description': 'List 20 things you want to do together in life',
+            'category': 'Soft',
+            'question_translations': {
+              'en': 'Create a Bucket List',
+              'ar': 'أنشئا قائمة أمنيات',
+              'fr': 'Créez une liste de choses à faire',
+            },
+            'description_translations': {
+              'en': 'List 20 things you want to do together in life',
+              'ar': 'اذكرا 20 شيئاً تريدان فعله معاً في الحياة',
+              'fr': 'Listez 20 choses que vous voulez faire ensemble dans la vie',
+            },
+          },
+          {
+            'question': 'Vulnerability Hour',
+            'description': 'Take turns sharing something you have never told anyone',
+            'category': 'Deep',
+            'question_translations': {
+              'en': 'Vulnerability Hour',
+              'ar': 'ساعة الضعف',
+              'fr': 'Heure de vulnérabilité',
+            },
+            'description_translations': {
+              'en': 'Take turns sharing something you have never told anyone',
+              'ar': 'تناوبا على مشاركة شيء لم تخبرا به أحداً من قبل',
+              'fr': 'Partagez à tour de rôle quelque chose que vous n\'avez jamais dit à personne',
+            },
+          },
+        ];
+
+      case 'deep_dialogue_wheel':
+        return [
+          {
+            'question': 'What moment made you feel closest to me this week?',
+            'category': 'emotional_connection',
+            'question_translations': {
+              'en': 'What moment made you feel closest to me this week?',
+              'ar': 'ما هي اللحظة التي جعلتك تشعر بالأقرب مني هذا الأسبوع؟',
+              'fr': 'Quel moment t\'a fait te sentir le plus proche de moi cette semaine ?',
+            },
+          },
+          {
+            'question': 'When did you feel most understood by me lately?',
+            'category': 'emotional_connection',
+            'question_translations': {
+              'en': 'When did you feel most understood by me lately?',
+              'ar': 'متى شعرت بأنني أفهمك أكثر مؤخراً؟',
+              'fr': 'Quand t\'es-tu senti le plus compris par moi récemment ?',
+            },
+          },
+          {
+            'question': 'What is one thing I do that makes you feel safe?',
+            'category': 'emotional_connection',
+            'question_translations': {
+              'en': 'What is one thing I do that makes you feel safe?',
+              'ar': 'ما هو الشيء الوحيد الذي أفعله ويجعلك تشعر بالأمان؟',
+              'fr': 'Qu\'est-ce que je fais qui te fait sentir en sécurité ?',
+            },
+          },
+          {
+            'question': 'Where do you see us five years from today?',
+            'category': 'future_dreams',
+            'question_translations': {
+              'en': 'Where do you see us five years from today?',
+              'ar': 'أين ترانا بعد خمس سنوات من اليوم؟',
+              'fr': 'Où nous vois-tu dans cinq ans ?',
+            },
+          },
+          {
+            'question': 'What is one dream you want us to accomplish together?',
+            'category': 'future_dreams',
+            'question_translations': {
+              'en': 'What is one dream you want us to accomplish together?',
+              'ar': 'ما هو الحلم الواحد الذي تريد أن نحققه معاً؟',
+              'fr': 'Quel est le rêve que tu veux que nous réalisions ensemble ?',
+            },
+          },
+          {
+            'question': 'If we could live anywhere in the world, where would it be?',
+            'category': 'future_dreams',
+            'question_translations': {
+              'en': 'If we could live anywhere in the world, where would it be?',
+              'ar': 'إذا كان بإمكاننا العيش في أي مكان في العالم، أين سيكون؟',
+              'fr': 'Si nous pouvions vivre n\'importe où dans le monde, où serait-ce ?',
+            },
+          },
+          {
+            'question': 'How can I better support you when we disagree?',
+            'category': 'conflict_resolution',
+            'question_translations': {
+              'en': 'How can I better support you when we disagree?',
+              'ar': 'كيف يمكنني دعمك بشكل أفضل عندما نختلف؟',
+              'fr': 'Comment puis-je mieux te soutenir quand nous sommes en désaccord ?',
+            },
+          },
+          {
+            'question': 'What is a conflict we handled well, and what made it work?',
+            'category': 'conflict_resolution',
+            'question_translations': {
+              'en': 'What is a conflict we handled well, and what made it work?',
+              'ar': 'ما هو الخلاف الذي تعاملنا معه بشكل جيد، وما الذي جعله ناجحاً؟',
+              'fr': 'Quel est un conflit que nous avons bien géré, et qu\'est-ce qui a fonctionné ?',
+            },
+          },
+          {
+            'question': 'I feel most loved when you... (complete the sentence)',
+            'category': 'conflict_resolution',
+            'question_translations': {
+              'en': 'I feel most loved when you... (complete the sentence)',
+              'ar': 'أشعر بالحب الأكبر عندما... (أكمل الجملة)',
+              'fr': 'Je me sens le plus aimé quand tu... (complète la phrase)',
+            },
+          },
+          {
+            'question': 'What is the funniest memory we share together?',
+            'category': 'playful_memories',
+            'question_translations': {
+              'en': 'What is the funniest memory we share together?',
+              'ar': 'ما هي أطرف ذكرى نتشاركها معاً؟',
+              'fr': 'Quel est le plus drôle des souvenirs que nous partageons ?',
+            },
+          },
+          {
+            'question': 'What song instantly takes us back to a special moment?',
+            'category': 'playful_memories',
+            'question_translations': {
+              'en': 'What song instantly takes us back to a special moment?',
+              'ar': 'ما هي الأغنية التي تعيدنا فوراً إلى لحظة خاصة؟',
+              'fr': 'Quelle chanson nous ramène instantanément à un moment spécial ?',
+            },
+          },
+          {
+            'question': 'Describe our most spontaneous adventure so far',
+            'category': 'playful_memories',
+            'question_translations': {
+              'en': 'Describe our most spontaneous adventure so far',
+              'ar': 'صِف أكثر مغامراتنا عفوية حتى الآن',
+              'fr': 'Décris notre aventure la plus spontanée jusqu\'à présent',
+            },
+          },
+          {
+            'question': 'What is something I do that you are grateful for every day?',
+            'category': 'gratitude',
+            'question_translations': {
+              'en': 'What is something I do that you are grateful for every day?',
+              'ar': 'ما هو الشيء الذي أفعله وأنت ممتن له كل يوم؟',
+              'fr': 'Qu\'est-ce que je fais pour lequel tu es reconnaissant chaque jour ?',
+            },
+          },
+          {
+            'question': 'When did you feel most proud of us as a couple?',
+            'category': 'gratitude',
+            'question_translations': {
+              'en': 'When did you feel most proud of us as a couple?',
+              'ar': 'متى شعرت بالفخر الأكبر بنا كزوجين؟',
+              'fr': 'Quand as-tu été le plus fier de nous en tant que couple ?',
+            },
+          },
+          {
+            'question': 'What lesson has our relationship taught you about life?',
+            'category': 'gratitude',
+            'question_translations': {
+              'en': 'What lesson has our relationship taught you about life?',
+              'ar': 'ما الدرس الذي علّمته إياك علاقتنا عن الحياة؟',
+              'fr': 'Quelle leçon notre relation t\'a-t-elle apprise sur la vie ?',
+            },
+          },
+          {
+            'question': 'What is one place you want to explore together?',
+            'category': 'adventure',
+            'question_translations': {
+              'en': 'What is one place you want to explore together?',
+              'ar': 'ما هو المكان الوحيد الذي تريد استكشافه معاً؟',
+              'fr': 'Quel est l\'endroit que tu veux explorer ensemble ?',
+            },
+          },
+          {
+            'question': 'What new hobby should we try as a couple?',
+            'category': 'adventure',
+            'question_translations': {
+              'en': 'What new hobby should we try as a couple?',
+              'ar': 'ما الهواية الجديدة التي يجب أن نجربها كزوجين؟',
+              'fr': 'Quel nouveau hobby devrions-nous essayer en couple ?',
+            },
+          },
+          {
+            'question': 'What is something you have always wanted to do but felt nervous to suggest?',
+            'category': 'adventure',
+            'question_translations': {
+              'en': 'What is something you have always wanted to do but felt nervous to suggest?',
+              'ar': 'ما هو الشيء الذي أردت دائماً فعله ولكنك شعرت بالتوتر لاقتراحه؟',
+              'fr': 'Qu\'est-ce que tu as toujours voulu faire mais que tu étais nerveux à suggérer ?',
+            },
           },
         ];
 

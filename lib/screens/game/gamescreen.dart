@@ -12,6 +12,8 @@ import 'package:velmora/screens/game/would_you_rather.dart';
 import 'package:velmora/screens/game/date_night_ideas.dart';
 import 'package:velmora/screens/game/relationship_quiz.dart';
 import 'package:velmora/screens/game/compliment_game.dart';
+import 'package:velmora/screens/game/match_and_reveal.dart';
+import 'package:velmora/screens/game/deep_dialogue_wheel.dart';
 import 'package:velmora/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velmora/widgets/skeletons/games_skeleton.dart';
@@ -210,6 +212,30 @@ class _GamesScreenState extends State<GamesScreen> {
         'isPremium': false,
         'screenType': 'compliment_game',
       },
+      {
+        'id': 'match_and_reveal',
+        'name': 'Match & Reveal',
+        'description': 'Discover shared desires through private voting',
+        'icon': 'favorite',
+        'color': '#FF6B9D',
+        'headerColor': '#FF6B9D',
+        'players': '2 players',
+        'time': '15 min',
+        'isPremium': false,
+        'screenType': 'match_and_reveal',
+      },
+      {
+        'id': 'deep_dialogue_wheel',
+        'name': 'Deep Dialogue Wheel',
+        'description': 'Spin the wheel for meaningful conversations',
+        'icon': 'casino',
+        'color': '#6C63FF',
+        'headerColor': '#6C63FF',
+        'players': '2 players',
+        'time': '15 min',
+        'isPremium': false,
+        'screenType': 'deep_dialogue_wheel',
+      },
     ];
   }
 
@@ -273,6 +299,12 @@ class _GamesScreenState extends State<GamesScreen> {
           break;
         case 'compliment_game':
           gameScreen = const ComplimentGameScreen();
+          break;
+        case 'match_and_reveal':
+          gameScreen = const MatchAndRevealScreen();
+          break;
+        case 'deep_dialogue_wheel':
+          gameScreen = const DeepDialogueWheelScreen();
           break;
         default:
           if (mounted) {
