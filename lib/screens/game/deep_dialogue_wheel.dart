@@ -191,7 +191,14 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   int _determineCategory() {
     final finalAngle = (_currentAngle % (2 * pi) + 2 * pi) % (2 * pi);
     final segmentAngle = (2 * pi) / _categories.length;
-    int index = ((-finalAngle / segmentAngle).floor()) % _categories.length;
+    // Pointer is on the right side (angle 0 in canvas coords).
+    // Segment i covers: -pi/2 + finalAngle + i*segmentAngle  →  -pi/2 + finalAngle + (i+1)*segmentAngle
+    // Need i where segment covers angle 0:
+    //   -pi/2 + finalAngle + i*segmentAngle <= 0 < -pi/2 + finalAngle + (i+1)*segmentAngle
+    //   i*segmentAngle <= pi/2 - finalAngle < (i+1)*segmentAngle
+    //   i = floor((pi/2 - finalAngle) / segmentAngle)
+    double raw = (pi / 2 - finalAngle) / segmentAngle;
+    int index = raw.floor() % _categories.length;
     if (index < 0) index += _categories.length;
     if (_categories[index].id == _currentCategory && _roundsPlayed > 0) {
       index = (index + 1) % _categories.length;
@@ -1179,7 +1186,7 @@ class _WheelPainter extends CustomPainter {
       );
     }
 
-    // Draw pointer triangle at ~35% from right side, rotated toward wheel center
+    // Draw pointer triangle on right side, pointing left toward wheel center
     final pointerPaint = Paint()
       ..color = const Color(0xFFFF6B9D)
       ..style = PaintingStyle.fill;
@@ -1187,12 +1194,9 @@ class _WheelPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
-    final double pointerOffset = radius * (-0.5);
-    final double pointerY = center.dy - radius - (-5);
-    final double angleToCenter = atan2(radius + 12, -pointerOffset);
     canvas.save();
-    canvas.translate(center.dx + pointerOffset, pointerY);
-    canvas.rotate(angleToCenter - pi / 2);
+    canvas.translate(center.dx + radius + 14, center.dy);
+    canvas.rotate(pi / 2);
     final pathPointer = Path();
     pathPointer.moveTo(-18, -14);
     pathPointer.lineTo(18, -14);
