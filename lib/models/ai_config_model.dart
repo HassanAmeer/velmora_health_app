@@ -11,6 +11,7 @@ class AIConfigModel {
   final String? apiKey;
   final bool enabled;
   final String model;
+  final String provider;
 
   // Generation Config
   final int maxTokens;
@@ -35,6 +36,7 @@ class AIConfigModel {
     this.apiKey,
     this.enabled = true,
     this.model = 'gemini-2.5-flash',
+    this.provider = 'gemini',
     this.maxTokens = 500,
     this.temperature = 0.7,
     this.topK = 40,
@@ -54,6 +56,7 @@ class AIConfigModel {
       apiKey: data['apiKey'] as String?,
       enabled: data['enabled'] as bool? ?? true,
       model: data['model'] as String? ?? 'gemini-2.5-flash',
+      provider: data['provider'] as String? ?? 'gemini',
       maxTokens: data['maxTokens'] as int? ?? 500,
       temperature: (data['temperature'] as num?)?.toDouble() ?? 0.7,
       topK: data['topK'] as int? ?? 40,
@@ -74,6 +77,7 @@ class AIConfigModel {
       'apiKey': apiKey,
       'enabled': enabled,
       'model': model,
+      'provider': provider,
       'maxTokens': maxTokens,
       'temperature': temperature,
       'topK': topK,
@@ -94,6 +98,7 @@ class AIConfigModel {
     String? apiKey,
     bool? enabled,
     String? model,
+    String? provider,
     int? maxTokens,
     double? temperature,
     int? topK,
@@ -108,6 +113,7 @@ class AIConfigModel {
       apiKey: apiKey ?? this.apiKey,
       enabled: enabled ?? this.enabled,
       model: model ?? this.model,
+      provider: provider ?? this.provider,
       maxTokens: maxTokens ?? this.maxTokens,
       temperature: temperature ?? this.temperature,
       topK: topK ?? this.topK,
