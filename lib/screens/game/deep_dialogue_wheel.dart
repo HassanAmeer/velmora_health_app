@@ -1,12 +1,13 @@
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velmora/services/game_service.dart';
 import 'package:velmora/services/game_questions_service.dart';
 import 'package:velmora/utils/responsive_sizer.dart';
 import 'package:velmora/l10n/app_localizations.dart';
 import 'package:velmora/widgets/game_progress_indicator.dart';
 import 'package:velmora/widgets/skeletons/game_skeleton.dart';
-import 'package:velmora/models/game_question.dart';
 import 'package:velmora/services/vibration_service.dart';
 
 class DeepDialogueWheelScreen extends StatefulWidget {
@@ -20,64 +21,73 @@ class DeepDialogueWheelScreen extends StatefulWidget {
 class _CategoryData {
   final String id;
   final String label;
-  final IconData icon;
+  final String emoji;
   final Color color;
 
   const _CategoryData({
     required this.id,
     required this.label,
-    required this.icon,
+    required this.emoji,
     required this.color,
   });
 }
-
-const Map<String, String> _categoryEmojis = {
-  'emotional_connection': '\u2764\uFE0F',
-  'future_dreams': '\u2B50',
-  'conflict_resolution': '\uD83E\uDD1D',
-  'playful_memories': '\uD83C\uDF89',
-  'gratitude': '\uD83D\uDE4F',
-  'adventure': '\uD83D\uDE80',
-};
 
 const List<_CategoryData> _categories = [
   _CategoryData(
     id: 'emotional_connection',
     label: 'Emotional Connection',
-    icon: Icons.favorite,
+    emoji: '\u2764\uFE0F',
     color: Color(0xFFE91E63),
   ),
   _CategoryData(
-    id: 'future_dreams',
-    label: 'Future Dreams',
-    icon: Icons.star,
+    id: 'shared_dreams',
+    label: 'Shared Dreams',
+    emoji: '\u2B50',
     color: Color(0xFF9C27B0),
   ),
   _CategoryData(
     id: 'conflict_resolution',
     label: 'Conflict Resolution',
-    icon: Icons.chat_bubble_outline,
+    emoji: '\uD83E\uDD1D',
     color: Color(0xFFFF9800),
   ),
   _CategoryData(
     id: 'playful_memories',
     label: 'Playful Memories',
-    icon: Icons.celebration,
+    emoji: '\uD83C\uDF89',
     color: Color(0xFF4CAF50),
   ),
   _CategoryData(
-    id: 'gratitude',
-    label: 'Gratitude',
-    icon: Icons.favorite_border,
+    id: 'building_the_future',
+    label: 'Building the Future',
+    emoji: '\uD83C\uDF1F',
     color: Color(0xFF2196F3),
   ),
   _CategoryData(
-    id: 'adventure',
-    label: 'Adventure',
-    icon: Icons.explore,
+    id: 'values_and_principles',
+    label: 'Values & Principles',
+    emoji: '\uD83D\uDD35',
     color: Color(0xFF00BCD4),
   ),
 ];
+
+class _SessionEntry {
+  final int spinNumber;
+  final String category;
+  final String question;
+
+  _SessionEntry({
+    required this.spinNumber,
+    required this.category,
+    required this.question,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'spinNumber': spinNumber,
+    'category': category,
+    'question': question,
+  };
+}
 
 class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     with SingleTickerProviderStateMixin {
@@ -86,10 +96,8 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   final TextEditingController _player1Controller = TextEditingController();
   final TextEditingController _player2Controller = TextEditingController();
 
-  List<GameQuestion> _questions = [];
   String? _sessionId;
   bool _isLoading = true;
-  bool _gameCompleted = false;
 
   String _player1Name = 'Partner A';
   String _player2Name = 'Partner B';
@@ -100,10 +108,16 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   double _currentAngle = 0;
   bool _isSpinning = false;
   int? _selectedCategoryIndex;
-  GameQuestion? _currentQuestion;
+  String? _currentQuestion;
+  String? _currentCategory;
   int _roundsPlayed = 0;
-  static const int _maxRounds = 6;
-  String? _lastCategory;
+  static const int _maxRounds = 8;
+  bool _gameCompleted = false;
+  bool _showSummary = false;
+  bool _spinAgainMode = false;
+
+  final List<_SessionEntry> _sessionHistory = [];
+  final Set<String> _categoriesAppeared = {};
 
   @override
   void initState() {
@@ -133,21 +147,13 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     try {
       _sessionId =
           await _gameService.startGameSessionById('deep_dialogue_wheel');
-      final questions =
-          await _questionsService.getQuestions('deep_dialogue_wheel');
-      setState(() {
-        _questions = questions;
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       if (mounted) {
-        final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${l10n.error}: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${AppLocalizations.of(context).error}: $e')),
+        );
       }
     }
   }
@@ -160,14 +166,16 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
 
   void _onSpinStatus(AnimationStatus status) {
     if (status == AnimationStatus.completed) {
+      final categoryIndex = _determineCategory();
+      final category = _categories[categoryIndex];
       setState(() {
         _isSpinning = false;
-        _selectedCategoryIndex = _determineCategory();
-        _currentQuestion = _getQuestionForCategory(
-          _categories[_selectedCategoryIndex!].id,
-        );
+        _selectedCategoryIndex = categoryIndex;
+        _currentCategory = category.id;
       });
+      _categoriesAppeared.add(category.id);
       VibrationService.longVibration();
+      _generateQuestion(category.id);
     }
   }
 
@@ -176,21 +184,24 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     final segmentAngle = (2 * pi) / _categories.length;
     int index = (finalAngle / segmentAngle).floor();
     if (index >= _categories.length) index = 0;
-
-    if (_categories[index].id == _lastCategory) {
+    if (_categories[index].id == _currentCategory && _roundsPlayed > 0) {
       index = (index + 1) % _categories.length;
     }
-    _lastCategory = _categories[index].id;
     return index;
   }
 
-  GameQuestion? _getQuestionForCategory(String categoryId) {
-    final catQuestions = _questions
-        .where((q) => q.category?.toLowerCase() == categoryId.toLowerCase())
-        .toList();
-    if (catQuestions.isEmpty) return null;
-    final random = Random();
-    return catQuestions[random.nextInt(catQuestions.length)];
+  Future<void> _generateQuestion(String categoryId) async {
+    final question =
+        await _questionsService.generateWheelQuestion(categoryId);
+    if (question != null && mounted) {
+      setState(() {
+        _currentQuestion = question.question;
+      });
+    } else if (mounted) {
+      setState(() {
+        _currentQuestion = 'What is something you appreciate about our relationship right now?';
+      });
+    }
   }
 
   void _spin() {
@@ -199,23 +210,45 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
       _isSpinning = true;
       _currentQuestion = null;
       _selectedCategoryIndex = null;
+      _currentCategory = null;
     });
     VibrationService.doubleVibration();
     _spinController.forward(from: 0);
   }
 
-  void _nextRound() {
+  void _nextSpin() {
+    if (_currentQuestion == null || _currentCategory == null) return;
+
+    _sessionHistory.add(_SessionEntry(
+      spinNumber: _roundsPlayed + 1,
+      category: _currentCategory!,
+      question: _currentQuestion!,
+    ));
+
     if (_roundsPlayed >= _maxRounds - 1) {
-      _finishGame();
+      _saveSessionToLocal();
+      setState(() => _showSummary = true);
       return;
     }
     setState(() {
       _roundsPlayed++;
       _currentQuestion = null;
       _selectedCategoryIndex = null;
+      _currentCategory = null;
       _currentAngle = 0;
     });
     VibrationService.lightVibration();
+  }
+
+  Future<void> _saveSessionToLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyKey = 'wheel_session_${DateTime.now().millisecondsSinceEpoch}';
+      final data = _sessionHistory.map((e) => e.toJson()).toList();
+      await prefs.setString(historyKey, jsonEncode(data));
+    } catch (e) {
+      // silently fail — history is nice-to-have
+    }
   }
 
   Future<void> _finishGame() async {
@@ -223,9 +256,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
       if (_sessionId != null) {
         await _gameService.completeGameSession(_sessionId!);
       }
-      setState(() {
-        _gameCompleted = true;
-      });
+      setState(() => _gameCompleted = true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +266,21 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
         );
       }
     }
+  }
+
+  void _resetForNewSession() {
+    setState(() {
+      _roundsPlayed = 0;
+      _currentQuestion = null;
+      _selectedCategoryIndex = null;
+      _currentCategory = null;
+      _currentAngle = 0;
+      _showSummary = false;
+      _spinAgainMode = true;
+      _sessionHistory.clear();
+      _categoriesAppeared.clear();
+    });
+    VibrationService.doubleVibration();
   }
 
   void _setPlayerNames(AppLocalizations l10n) {
@@ -256,12 +302,12 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const Color primaryColor = Color(0xFF6C63FF);
+    const Color defaultColor = Color(0xFF6C63FF);
 
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: primaryColor,
+          backgroundColor: defaultColor,
           title: Text(l10n.translate('deep_dialogue_wheel')),
           elevation: 0,
         ),
@@ -269,38 +315,30 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
       );
     }
 
-    if (_questions.isEmpty) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF9F9FF),
-        appBar: AppBar(
-          backgroundColor: primaryColor,
-          title: Text(l10n.translate('deep_dialogue_wheel')),
-          elevation: 0,
-        ),
-        body: Center(child: Text(l10n.translate('no_prompts_available'))),
-      );
-    }
-
     if (!_namesSet) {
-      return _buildNameScreen(l10n, primaryColor);
+      return _buildNameScreen(l10n, defaultColor);
     }
 
     if (_gameCompleted) {
-      return _buildCompletionScreen(l10n, primaryColor);
+      return _buildCompletionScreen(l10n, defaultColor);
+    }
+
+    if (_showSummary) {
+      return _buildSummaryScreen(l10n, defaultColor);
     }
 
     if (_currentQuestion != null && _selectedCategoryIndex != null) {
-      return _buildQuestionScreen(l10n, primaryColor);
+      return _buildQuestionScreen(l10n, defaultColor);
     }
 
-    return _buildWheelScreen(l10n, primaryColor);
+    return _buildWheelScreen(l10n, defaultColor);
   }
 
-  Widget _buildNameScreen(AppLocalizations l10n, Color primaryColor) {
+  Widget _buildNameScreen(AppLocalizations l10n, Color defaultColor) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FF),
       appBar: AppBar(
-        backgroundColor: primaryColor,
+        backgroundColor: defaultColor,
         title: Text(l10n.translate('deep_dialogue_wheel')),
         elevation: 0,
       ),
@@ -309,7 +347,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.touch_app, size: 80.adaptSize, color: primaryColor),
+            Icon(Icons.touch_app, size: 80.adaptSize, color: defaultColor),
             SizedBox(height: 24.h),
             Text(
               l10n.enterPlayerNames,
@@ -318,6 +356,12 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF1F2933),
               ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              l10n.translate('wheel_name_subtitle'),
+              style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 40.h),
@@ -350,7 +394,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
               child: ElevatedButton(
                 onPressed: () => _setPlayerNames(l10n),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
+                  backgroundColor: defaultColor,
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.adaptSize),
@@ -368,11 +412,11 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     );
   }
 
-  Widget _buildCompletionScreen(AppLocalizations l10n, Color primaryColor) {
+  Widget _buildCompletionScreen(AppLocalizations l10n, Color defaultColor) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FF),
       appBar: AppBar(
-        backgroundColor: primaryColor,
+        backgroundColor: defaultColor,
         title: Text(l10n.translate('deep_dialogue_wheel')),
         elevation: 0,
       ),
@@ -381,7 +425,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.celebration, size: 100.adaptSize, color: primaryColor),
+            Icon(Icons.celebration, size: 100.adaptSize, color: defaultColor),
             SizedBox(height: 24.h),
             Text(
               l10n.translate('wonderful_discussions'),
@@ -394,13 +438,8 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
             ),
             SizedBox(height: 16.h),
             Text(
-              l10n
-                  .translate('you_had_rounds')
-                  .replaceAll('{count}', _roundsPlayed.toString()),
-              style: TextStyle(
-                fontSize: 18.fSize,
-                color: Colors.grey.shade600,
-              ),
+              l10n.translate('thank_you_spinning'),
+              style: TextStyle(fontSize: 18.fSize, color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 40.h),
@@ -409,7 +448,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
+                  backgroundColor: defaultColor,
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.adaptSize),
@@ -427,11 +466,11 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     );
   }
 
-  Widget _buildWheelScreen(AppLocalizations l10n, Color primaryColor) {
+  Widget _buildWheelScreen(AppLocalizations l10n, Color defaultColor) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FF),
       appBar: AppBar(
-        backgroundColor: primaryColor,
+        backgroundColor: defaultColor,
         title: Text(l10n.translate('deep_dialogue_wheel')),
         elevation: 0,
       ),
@@ -441,9 +480,17 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
             gameId: 'deep_dialogue_wheel',
             current: _roundsPlayed + 1,
             total: _maxRounds,
-            color: primaryColor,
+            color: defaultColor,
             label:
-                '${l10n.translate('round')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
+                '${l10n.translate('spin')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
+            trailingWidget: Text(
+              '$_player1Name & $_player2Name',
+              style: TextStyle(
+                fontSize: 13.fSize,
+                color: defaultColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           Expanded(
             child: Center(
@@ -468,16 +515,17 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                           painter: _WheelPainter(
                             categories: _categories,
                             selectedIndex: _selectedCategoryIndex,
+                            appearedCategories: _categoriesAppeared,
                           ),
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 24.h),
                   Text(
                     _isSpinning
                         ? l10n.translate('spinning')
-                        : l10n.translate('tap_to_spin'),
+                        : l10n.translate('tap_wheel_or_button'),
                     style: TextStyle(
                       fontSize: 16.fSize,
                       color: Colors.grey.shade600,
@@ -486,12 +534,31 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                   ),
                   SizedBox(height: 8.h),
                   Text(
-                    '${_roundsPlayed}/$_maxRounds ${l10n.translate('rounds')}',
-                    style: TextStyle(
-                      fontSize: 14.fSize,
-                      color: Colors.grey.shade400,
-                    ),
+                    '${l10n.translate('round')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
+                    style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade400),
                   ),
+                  if (_spinAgainMode)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8.h),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.adaptSize,
+                          vertical: 4.adaptSize,
+                        ),
+                        decoration: BoxDecoration(
+                          color: defaultColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12.adaptSize),
+                        ),
+                        child: Text(
+                          l10n.translate('spin_again_session'),
+                          style: TextStyle(
+                            fontSize: 12.fSize,
+                            color: defaultColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -510,7 +577,9 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                 label: Text(
                   _isSpinning
                       ? l10n.translate('spinning')
-                      : l10n.translate('spin_the_wheel'),
+                      : (_roundsPlayed == 0
+                          ? l10n.translate('first_spin')
+                          : l10n.translate('spin_again')),
                   style: TextStyle(
                     fontSize: 18.fSize,
                     color: _isSpinning ? Colors.grey : Colors.white,
@@ -518,7 +587,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      _isSpinning ? Colors.grey.shade300 : primaryColor,
+                      _isSpinning ? Colors.grey.shade300 : defaultColor,
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.adaptSize),
@@ -532,7 +601,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
     );
   }
 
-  Widget _buildQuestionScreen(AppLocalizations l10n, Color primaryColor) {
+  Widget _buildQuestionScreen(AppLocalizations l10n, Color defaultColor) {
     final category = _categories[_selectedCategoryIndex!];
 
     return Scaffold(
@@ -550,7 +619,7 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
             total: _maxRounds,
             color: category.color,
             label:
-                '${l10n.translate('round')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
+                '${l10n.translate('spin')} ${_roundsPlayed + 1} ${l10n.ofLabel} $_maxRounds',
             trailingWidget: Text(
               category.label,
               style: TextStyle(
@@ -573,10 +642,11 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                       color: category.color.withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      category.icon,
-                      size: 48.adaptSize,
-                      color: category.color,
+                    child: Center(
+                      child: Text(
+                        category.emoji,
+                        style: TextStyle(fontSize: 44.adaptSize),
+                      ),
                     ),
                   ),
                   SizedBox(height: 16.h),
@@ -614,17 +684,25 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                         ),
                       ],
                     ),
-                    child: Text(
-                      _currentQuestion!.getLocalizedQuestion(
-                        Localizations.localeOf(context).languageCode,
-                      ),
-                      style: TextStyle(
-                        fontSize: 20.fSize,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1F2933),
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.format_quote,
+                          size: 32.adaptSize,
+                          color: category.color.withOpacity(0.4),
+                        ),
+                        SizedBox(height: 12.h),
+                        Text(
+                          _currentQuestion ?? '',
+                          style: TextStyle(
+                            fontSize: 20.fSize,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1F2933),
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(height: 24.h),
@@ -671,6 +749,16 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
                       ],
                     ),
                   ),
+                  SizedBox(height: 12.h),
+                  Text(
+                    l10n.translate('answer_out_loud'),
+                    style: TextStyle(
+                      fontSize: 13.fSize,
+                      color: Colors.grey.shade500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
@@ -681,17 +769,17 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _nextRound,
+                onPressed: _nextSpin,
                 icon: Icon(
                   _roundsPlayed >= _maxRounds - 1
-                      ? Icons.check_circle
+                      ? Icons.visibility
                       : Icons.rotate_right,
                   color: Colors.white,
                 ),
                 label: Text(
                   _roundsPlayed >= _maxRounds - 1
-                      ? l10n.translate('finish')
-                      : l10n.translate('next_round'),
+                      ? l10n.translate('view_summary')
+                      : l10n.translate('next_spin'),
                   style: TextStyle(fontSize: 18.fSize, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -708,13 +796,187 @@ class _DeepDialogueWheelScreenState extends State<DeepDialogueWheelScreen>
       ),
     );
   }
+
+  Widget _buildSummaryScreen(AppLocalizations l10n, Color defaultColor) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F9FF),
+      appBar: AppBar(
+        backgroundColor: defaultColor,
+        title: Text(l10n.translate('session_summary')),
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              24.adaptSize, 20.adaptSize, 24.adaptSize, 20.adaptSize,
+            ),
+            color: defaultColor.withOpacity(0.1),
+            child: Column(
+              children: [
+                Icon(Icons.auto_stories, size: 48.adaptSize, color: defaultColor),
+                SizedBox(height: 8.h),
+                Text(
+                  l10n.translate('your_session'),
+                  style: TextStyle(
+                    fontSize: 24.fSize,
+                    fontWeight: FontWeight.bold,
+                    color: defaultColor,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '$_player1Name & $_player2Name  |  $_maxRounds ${l10n.translate('spins')}',
+                  style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.all(16.adaptSize),
+              itemCount: _sessionHistory.length,
+              itemBuilder: (context, index) {
+                final entry = _sessionHistory[index];
+                final cat = _categories.firstWhere(
+                  (c) => c.id == entry.category,
+                  orElse: () => _categories[0],
+                );
+
+                return Container(
+                  margin: EdgeInsets.only(bottom: 12.adaptSize),
+                  padding: EdgeInsets.all(16.adaptSize),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16.adaptSize),
+                    border: Border.all(
+                      color: cat.color.withOpacity(0.2),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 40.adaptSize,
+                        height: 40.adaptSize,
+                        decoration: BoxDecoration(
+                          color: cat.color.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12.adaptSize),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${entry.spinNumber}',
+                            style: TextStyle(
+                              fontSize: 16.fSize,
+                              fontWeight: FontWeight.bold,
+                              color: cat.color,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.adaptSize),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${cat.emoji} ${cat.label}',
+                              style: TextStyle(
+                                fontSize: 12.fSize,
+                                fontWeight: FontWeight.w600,
+                                color: cat.color,
+                              ),
+                            ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              entry.question,
+                              style: TextStyle(
+                                fontSize: 15.fSize,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF1F2933),
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.all(16.adaptSize),
+            color: Colors.white,
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _resetForNewSession,
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    label: Text(
+                      l10n.translate('spin_again_new_session'),
+                      style: TextStyle(fontSize: 18.fSize, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: defaultColor,
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.adaptSize),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _finishGame,
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.adaptSize),
+                      ),
+                    ),
+                    child: Text(
+                      l10n.translate('end_session'),
+                      style: TextStyle(
+                        fontSize: 16.fSize,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _WheelPainter extends CustomPainter {
   final List<_CategoryData> categories;
   final int? selectedIndex;
+  final Set<String> appearedCategories;
 
-  _WheelPainter({required this.categories, this.selectedIndex});
+  _WheelPainter({
+    required this.categories,
+    this.selectedIndex,
+    this.appearedCategories = const {},
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -724,9 +986,13 @@ class _WheelPainter extends CustomPainter {
 
     for (int i = 0; i < categories.length; i++) {
       final startAngle = i * segmentAngle - pi / 2;
+      final cat = categories[i];
+      final hasAppeared = appearedCategories.contains(cat.id);
 
       final paint = Paint()
-        ..color = categories[i].color.withOpacity(0.85)
+        ..color = hasAppeared
+            ? cat.color.withOpacity(0.95)
+            : cat.color.withOpacity(0.75)
         ..style = PaintingStyle.fill;
 
       final path = Path();
@@ -740,27 +1006,23 @@ class _WheelPainter extends CustomPainter {
       path.close();
       canvas.drawPath(path, paint);
 
-      // Draw border
+      // Draw separator lines
       final borderPaint = Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawPath(path, borderPaint);
 
-      // Draw emoji label
+      // Draw emoji
       final labelAngle = startAngle + segmentAngle / 2;
-      final labelRadius = radius * 0.6;
+      final labelRadius = radius * 0.55;
       final labelX = center.dx + labelRadius * cos(labelAngle);
       final labelY = center.dy + labelRadius * sin(labelAngle);
 
-      final emoji = _categoryEmojis[categories[i].id] ?? '\u2764\uFE0F';
       final textPainter = TextPainter(
         text: TextSpan(
-          text: emoji,
-          style: TextStyle(
-            fontSize: 26,
-            color: Colors.white,
-          ),
+          text: cat.emoji,
+          style: TextStyle(fontSize: 24),
         ),
         textDirection: TextDirection.ltr,
       );
@@ -769,20 +1031,60 @@ class _WheelPainter extends CustomPainter {
         canvas,
         Offset(labelX - textPainter.width / 2, labelY - textPainter.height / 2),
       );
+
+      // Draw short label text
+      final shortLabel = _shortLabel(cat.label);
+      final labelTextPainter = TextPainter(
+        text: TextSpan(
+          text: shortLabel,
+          style: TextStyle(
+            fontSize: 9,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      labelTextPainter.layout();
+      labelTextPainter.paint(
+        canvas,
+        Offset(
+          labelX - labelTextPainter.width / 2,
+          labelY + 16,
+        ),
+      );
     }
+
+    // Draw pointer triangle at top
+    final pointerPaint = Paint()..color = Colors.white;
+    final pathPointer = Path();
+    pathPointer.moveTo(center.dx - 12, center.dy - radius - 8);
+    pathPointer.lineTo(center.dx + 12, center.dy - radius - 8);
+    pathPointer.lineTo(center.dx, center.dy - radius - 24);
+    pathPointer.close();
+    canvas.drawPath(pathPointer, pointerPaint);
+    canvas.drawShadow(pathPointer, Colors.black26, 4, false);
 
     // Draw center circle
     final centerPaint = Paint()..color = Colors.white;
-    canvas.drawCircle(center, radius * 0.12, centerPaint);
+    canvas.drawCircle(center, radius * 0.1, centerPaint);
     final centerBorderPaint = Paint()
       ..color = const Color(0xFF6C63FF)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawCircle(center, radius * 0.12, centerBorderPaint);
+      ..strokeWidth = 2.5;
+    canvas.drawCircle(center, radius * 0.1, centerBorderPaint);
+  }
+
+  String _shortLabel(String label) {
+    if (label == 'Emotional Connection') return 'Emotion';
+    if (label == 'Shared Dreams') return 'Dreams';
+    if (label == 'Conflict Resolution') return 'Conflict';
+    if (label == 'Playful Memories') return 'Playful';
+    if (label == 'Building the Future') return 'Future';
+    if (label == 'Values & Principles') return 'Values';
+    return label;
   }
 
   @override
   bool shouldRepaint(_WheelPainter oldDelegate) => true;
 }
-
-

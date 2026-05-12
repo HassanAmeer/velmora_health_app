@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:velmora/models/game_question.dart';
@@ -255,11 +256,209 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
       case 'match_and_reveal':
         return '''Generate 12 unique, non-repetitive romantic/intimacy activity ideas for a married couple. Categorize each by intensity (Soft, Adventurous, Deep). Include a brief description of each activity. Ensure variety to avoid boredom. Output in strict JSON array format with each item having: "question" (activity name), "description" (brief description), "category" (Soft/Adventurous/Deep), and "question_translations" with en/ar/fr translations for the activity name, "description_translations" with en/ar/fr translations for the description.''';
 
-      case 'deep_dialogue_wheel':
-        return '''Generate 18 thought-provoking conversation starters for couples. Each must be categorized into one of: emotional_connection, future_dreams, conflict_resolution, playful_memories, gratitude, adventure (3 per category). Questions should encourage "I feel" statements and avoid blame. Keep them short and engaging, suitable for deepening intimacy. Output in strict JSON array format with each item having: "question" (the question text), "category" (one of the 6 category IDs), and "question_translations" with en/ar/fr translations.''';
-
       default:
         return 'Generate 10 meaningful questions for couples with English, Arabic, and French translations.';
+    }
+  }
+
+  /// Generate a single fresh question for the Deep Dialogue Wheel
+  /// Called live on each spin — one API call per spin
+  Future<GameQuestion?> generateWheelQuestion(String category) async {
+    try {
+      final aiConfigDoc = await _firestore
+          .collection('ai_config')
+          .doc('settings')
+          .get();
+
+      if (!aiConfigDoc.exists || aiConfigDoc.data() == null) {
+        return _getWheelFallbackQuestion(category);
+      }
+
+      final aiConfig = aiConfigDoc.data()!;
+      final enabled = aiConfig['enabled'] ?? false;
+      if (!enabled) return _getWheelFallbackQuestion(category);
+
+      final apiKey = aiConfig['apiKey'] as String?;
+      final provider = (aiConfig['provider'] as String? ?? 'gemini').toLowerCase();
+
+      if (apiKey == null || apiKey.isEmpty || apiKey == 'PLACEHOLDER_KEY') {
+        return _getWheelFallbackQuestion(category);
+      }
+
+      final prompt = _getWheelPromptForCategory(category);
+      GameQuestion? question;
+
+      if (provider == 'claude') {
+        final claudeKey = aiConfig['claudeApiKey'] as String? ?? apiKey;
+        question = await _callClaudeAPI(claudeKey, prompt, category);
+      } else {
+        question = await _callGeminiSingle(apiKey, prompt, aiConfig, category);
+      }
+
+      if (question != null) return question;
+      return _getWheelFallbackQuestion(category);
+    } catch (e) {
+      return _getWheelFallbackQuestion(category);
+    }
+  }
+
+  Future<GameQuestion?> _callClaudeAPI(
+    String apiKey,
+    String prompt,
+    String category,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.anthropic.com/v1/messages'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: jsonEncode({
+          'model': 'claude-sonnet-4-20250514',
+          'max_tokens': 150,
+          'messages': [
+            {'role': 'user', 'content': prompt},
+          ],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final content = data['content'] as List?;
+        if (content != null && content.isNotEmpty) {
+          final text = content[0]['text'] as String?;
+          if (text != null && text.isNotEmpty) {
+            final cleanText = text.trim();
+            return GameQuestion(
+              id: 'wheel_${DateTime.now().millisecondsSinceEpoch}',
+              question: cleanText,
+              category: category,
+            );
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<GameQuestion?> _callGeminiSingle(
+    String apiKey,
+    String prompt,
+    Map<String, dynamic> aiConfig,
+    String category,
+  ) async {
+    try {
+      final model = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
+      final apiUrl =
+          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
+
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'contents': [
+            {'parts': [{'text': prompt}]},
+          ],
+          'generationConfig': {
+            'maxOutputTokens': 150,
+            'temperature': 0.7,
+          },
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['candidates'] != null &&
+            data['candidates'].isNotEmpty &&
+            data['candidates'][0]['content'] != null &&
+            data['candidates'][0]['content']['parts'] != null &&
+            data['candidates'][0]['content']['parts'].isNotEmpty) {
+          final text = data['candidates'][0]['content']['parts'][0]['text'] as String;
+          final cleanText = text.trim();
+          return GameQuestion(
+            id: 'wheel_${DateTime.now().millisecondsSinceEpoch}',
+            question: cleanText,
+            category: category,
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String _getWheelPromptForCategory(String category) {
+    switch (category) {
+      case 'emotional_connection':
+        return 'A couple playing a Deep Dialogue Wheel game landed on Emotional Connection. Generate one short, warm question that invites the couple to express feelings using "I feel" language in a safe, non-judgmental space. Maximum 20 words. Return only the question, no extra text.';
+      case 'shared_dreams':
+        return 'A couple playing a Deep Dialogue Wheel game landed on Shared Dreams. Generate one inspiring question about the couple\'s vision for their future together. Forward-looking and hopeful. Maximum 20 words. Return only the question, no extra text.';
+      case 'conflict_resolution':
+        return 'A couple playing a Deep Dialogue Wheel game landed on Conflict Resolution. Generate one short, healing question that encourages "I feel" statements, avoids blame, and feels warm not clinical. Maximum 20 words. Return only the question, no extra text.';
+      case 'playful_memories':
+        return 'A couple playing a Deep Dialogue Wheel game landed on Playful Memories. Generate one fun, lighthearted question about a happy shared experience. Maximum 20 words. Return only the question, no extra text.';
+      case 'building_the_future':
+        return 'A couple playing a Deep Dialogue Wheel game landed on Building the Future. Generate one practical yet emotional question about their shared goals, plans, and growing together as a team. Maximum 20 words. Return only the question, no extra text.';
+      case 'values_and_principles':
+        return 'A couple playing a Deep Dialogue Wheel game landed on Values & Principles. Generate one deep question that helps them understand each other\'s core beliefs, priorities, and what they stand for. Maximum 20 words. Return only the question, no extra text.';
+      default:
+        return 'Generate one short, meaningful question for a couple to deepen their connection. Maximum 20 words. Return only the question, no extra text.';
+    }
+  }
+
+  GameQuestion? _getWheelFallbackQuestion(String category) {
+    final questions = _getWheelFallbackData(category);
+    if (questions.isEmpty) return null;
+    return questions[Random().nextInt(questions.length)];
+  }
+
+  List<GameQuestion> _getWheelFallbackData(String category) {
+    switch (category) {
+      case 'emotional_connection':
+        return [
+          GameQuestion(id: 'ec_1', question: 'What moment made you feel closest to me this week?', category: category),
+          GameQuestion(id: 'ec_2', question: 'When did you feel most understood by me lately?', category: category),
+          GameQuestion(id: 'ec_3', question: 'What is one thing I do that makes you feel safe and loved?', category: category),
+        ];
+      case 'shared_dreams':
+        return [
+          GameQuestion(id: 'sd_1', question: 'Where do you see us five years from today?', category: category),
+          GameQuestion(id: 'sd_2', question: 'What is one dream you want us to accomplish together?', category: category),
+          GameQuestion(id: 'sd_3', question: 'If we could live anywhere in the world, where would it be?', category: category),
+        ];
+      case 'conflict_resolution':
+        return [
+          GameQuestion(id: 'cr_1', question: 'How can I better support you when we disagree about something?', category: category),
+          GameQuestion(id: 'cr_2', question: 'What is one conflict we handled well, and what made it work?', category: category),
+          GameQuestion(id: 'cr_3', question: 'I feel most heard when you... How would you finish that sentence?', category: category),
+        ];
+      case 'playful_memories':
+        return [
+          GameQuestion(id: 'pm_1', question: 'What is the funniest memory we share together?', category: category),
+          GameQuestion(id: 'pm_2', question: 'What song instantly takes us back to a special moment?', category: category),
+          GameQuestion(id: 'pm_3', question: 'Describe our most spontaneous adventure so far', category: category),
+        ];
+      case 'building_the_future':
+        return [
+          GameQuestion(id: 'bf_1', question: 'What is one goal you want us to achieve together in the next year?', category: category),
+          GameQuestion(id: 'bf_2', question: 'How can we grow together as a team in our daily lives?', category: category),
+          GameQuestion(id: 'bf_3', question: 'What practical step can we take this month toward our shared dreams?', category: category),
+        ];
+      case 'values_and_principles':
+        return [
+          GameQuestion(id: 'vp_1', question: 'What core value do you think defines our relationship the most?', category: category),
+          GameQuestion(id: 'vp_2', question: 'What principle do you never want us to compromise on?', category: category),
+          GameQuestion(id: 'vp_3', question: 'How have your values changed since we first got together?', category: category),
+        ];
+      default:
+        return [
+          GameQuestion(id: 'gen_1', question: 'What do you appreciate most about our relationship right now?', category: category),
+        ];
     }
   }
 
