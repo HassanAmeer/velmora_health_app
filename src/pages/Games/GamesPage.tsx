@@ -65,6 +65,18 @@ const defaultGames: Game[] = [
         isPremium: false,
         isActive: true,
     },
+    {
+        id: 'match_and_reveal',
+        name: 'Match & Reveal',
+        isPremium: false,
+        isActive: true,
+    },
+    {
+        id: 'deep_dialogue_wheel',
+        name: 'Deep Dialogue Wheel',
+        isPremium: false,
+        isActive: true,
+    },
 ];
 
 const GamesPage: React.FC = () => {
@@ -176,6 +188,8 @@ const GamesPage: React.FC = () => {
             'date_night_ideas': '🍽️',
             'relationship_quiz': '📝',
             'compliment_game': '🎁',
+            'match_and_reveal': '💞',
+            'deep_dialogue_wheel': '🎡',
         };
         return icons[gameId] || '🎮';
     };
@@ -190,6 +204,8 @@ const GamesPage: React.FC = () => {
             'date_night_ideas': '#E91E63',
             'relationship_quiz': '#00BCD4',
             'compliment_game': '#9C27B0',
+            'match_and_reveal': '#FF6B9D',
+            'deep_dialogue_wheel': '#6C63FF',
         };
         return colors[gameId] || '#8B42FF';
     };
