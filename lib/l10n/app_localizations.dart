@@ -557,6 +557,9 @@ class AppLocalizations {
       'done_voting': 'Done voting',
       'now_its': 'Now it\'s {name}\'s turn',
       'hand_phone_to_partner': 'Hand the phone to your partner',
+      'hand_phone_instruction': 'passes the phone face-down to',
+      'partner_look_away': 'Partner, please look away now',
+      'im_ready': 'I\'m Ready',
       'start_partner_turn': 'Start Partner\'s Turn',
       'your_matches': 'Your Matches',
       'matches_found': 'matches found',
@@ -1260,6 +1263,9 @@ class AppLocalizations {
       'done_voting': 'انتهى التصويت',
       'now_its': 'الآن دور {name}',
       'hand_phone_to_partner': 'سلّم الهاتف لشريكك',
+      'hand_phone_instruction': 'يسلّم الهاتف مقلوباً إلى',
+      'partner_look_away': 'شريك، من فضلك انظر بعيداً الآن',
+      'im_ready': 'أنا مستعد',
       'start_partner_turn': 'ابدأ دور الشريك',
       'your_matches': 'تطابقاتك',
       'matches_found': 'تطابق موجود',
@@ -1933,6 +1939,9 @@ class AppLocalizations {
       'done_voting': 'Vote terminé',
       'now_its': 'C\'est au tour de {name}',
       'hand_phone_to_partner': 'Passez le téléphone à votre partenaire',
+      'hand_phone_instruction': 'passe le téléphone face cachée à',
+      'partner_look_away': 'Partenaire, veuillez détourner le regard maintenant',
+      'im_ready': 'Je suis prêt(e)',
       'start_partner_turn': 'Commencer le tour du partenaire',
       'your_matches': 'Vos correspondances',
       'matches_found': 'correspondances trouvées',
@@ -2451,6 +2460,9 @@ class AppLocalizations {
   String get doneVoting => translate('done_voting');
   String nowIts(Object name) => translate('now_its').replaceFirst('{name}', name.toString());
   String get handPhoneToPartner => translate('hand_phone_to_partner');
+  String get handPhoneInstruction => translate('hand_phone_instruction');
+  String get partnerLookAway => translate('partner_look_away');
+  String get imReady => translate('im_ready');
   String get startPartnerTurn => translate('start_partner_turn');
   String get yourMatches => translate('your_matches');
   String get matchesFound => translate('matches_found');

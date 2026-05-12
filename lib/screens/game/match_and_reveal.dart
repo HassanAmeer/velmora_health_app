@@ -17,7 +17,7 @@ class MatchAndRevealScreen extends StatefulWidget {
 
 enum VoteValue { yes, maybe, no }
 
-enum _GamePhase { nameEntry, partnerAVoting, partnerBTransition, partnerBVoting, reveal, completed }
+enum _GamePhase { nameEntry, handoff, partnerAVoting, partnerBTransition, partnerBVoting, reveal, completed }
 
 class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
   final GameService _gameService = GameService();
@@ -37,6 +37,7 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
   final Map<int, VoteValue> _partnerAVotes = {};
   final Map<int, VoteValue> _partnerBVotes = {};
   bool _showFullHistory = false;
+  bool _showDimOverlay = false;
 
   @override
   void initState() {
@@ -47,7 +48,7 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
   Future<void> _initializeGame() async {
     try {
       _sessionId = await _gameService.startGameSessionById('match_and_reveal');
-      final cards = await _questionsService.getQuestions('match_and_reveal');
+      final cards = await _questionsService.generateMatchAndRevealCards();
       setState(() {
         _cards = cards;
         _isLoading = false;
@@ -81,7 +82,7 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
     setState(() {
       _player1Name = _player1Controller.text.trim();
       _player2Name = _player2Controller.text.trim();
-      _phase = _GamePhase.partnerAVoting;
+      _phase = _GamePhase.handoff;
       _currentCardIndex = 0;
     });
     VibrationService.doubleVibration();
@@ -94,17 +95,31 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
       _partnerBVotes[_currentCardIndex] = vote;
     }
     VibrationService.lightVibration();
+    setState(() => _showDimOverlay = true);
 
-    if (_currentCardIndex < _cards.length - 1) {
-      setState(() => _currentCardIndex++);
-    } else if (_phase == _GamePhase.partnerAVoting) {
-      setState(() {
-        _phase = _GamePhase.partnerBTransition;
-        _currentCardIndex = 0;
-      });
-    } else {
-      _showMatchResults();
-    }
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      setState(() => _showDimOverlay = false);
+
+      if (_currentCardIndex < _cards.length - 1) {
+        setState(() => _currentCardIndex++);
+      } else if (_phase == _GamePhase.partnerAVoting) {
+        setState(() {
+          _phase = _GamePhase.partnerBTransition;
+          _currentCardIndex = 0;
+        });
+      } else {
+        _showMatchResults();
+      }
+    });
+  }
+
+  void _confirmHandoff() {
+    setState(() {
+      _phase = _GamePhase.partnerAVoting;
+      _currentCardIndex = 0;
+    });
+    VibrationService.doubleVibration();
   }
 
   void _startPartnerBTurn() {
@@ -171,11 +186,20 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
 
   void _playAgain() {
     setState(() {
+      _isLoading = true;
       _currentCardIndex = 0;
-      _phase = _GamePhase.partnerAVoting;
+      _phase = _GamePhase.handoff;
       _partnerAVotes.clear();
       _partnerBVotes.clear();
       _showFullHistory = false;
+    });
+    _questionsService.generateMatchAndRevealCards().then((cards) {
+      if (mounted) {
+        setState(() {
+          _cards = cards;
+          _isLoading = false;
+        });
+      }
     });
     VibrationService.doubleVibration();
   }
@@ -244,6 +268,8 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
     switch (_phase) {
       case _GamePhase.nameEntry:
         return _buildNameScreen(l10n, primaryColor);
+      case _GamePhase.handoff:
+        return _buildHandoffScreen(l10n, primaryColor);
       case _GamePhase.partnerAVoting:
         return _buildVotingScreen(l10n, primaryColor, true);
       case _GamePhase.partnerBTransition:
@@ -323,6 +349,62 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
   bool get _isPartnerATurn => _phase == _GamePhase.partnerAVoting;
   String get _currentVoterName => _isPartnerATurn ? _player1Name : _player2Name;
 
+  Widget _buildHandoffScreen(AppLocalizations l10n, Color primaryColor) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F9FF),
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: Text(l10n.translate('match_and_reveal')),
+        elevation: 0,
+      ),
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.adaptSize),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.pan_tool_alt, size: 80.adaptSize, color: primaryColor),
+              SizedBox(height: 24.h),
+              Text(
+                l10n.translate('hand_phone_to_partner'),
+                style: TextStyle(fontSize: 22.fSize, fontWeight: FontWeight.bold, color: const Color(0xFF1F2933)),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                '$_player1Name ${l10n.translate('hand_phone_instruction')} $_player2Name',
+                style: TextStyle(fontSize: 16.fSize, color: Colors.grey.shade600, height: 1.4),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                l10n.translate('partner_look_away'),
+                style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 40.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _confirmHandoff,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.adaptSize)),
+                  ),
+                  child: Text(
+                    l10n.translate('im_ready'),
+                    style: TextStyle(fontSize: 18.fSize, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildVotingScreen(AppLocalizations l10n, Color primaryColor, bool isPartnerA) {
     final currentCard = _cards[_currentCardIndex];
 
@@ -333,94 +415,104 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
         title: Text(l10n.translate('match_and_reveal')),
         elevation: 0,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          GameProgressIndicator(
-            gameId: 'match_and_reveal',
-            current: _currentCardIndex + 1,
-            total: _cards.length,
-            color: primaryColor,
-            label: '${l10n.translate('card')} ${_currentCardIndex + 1} ${l10n.ofLabel} ${_cards.length}',
-            trailingWidget: Text(
-              '$_currentVoterName\'s ${l10n.translate('turn')}',
-              style: TextStyle(fontSize: 13.fSize, color: primaryColor, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(16.adaptSize),
-            child: Text(
-              '$_currentVoterName: ${l10n.translate('vote_privately')}',
-              style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.adaptSize),
-              child: Column(
-                children: [
-                  const Spacer(),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(28.adaptSize),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24.adaptSize),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16.adaptSize, vertical: 6.adaptSize),
-                          decoration: BoxDecoration(
-                            color: _getCardColor(currentCard.category).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20.adaptSize),
-                          ),
-                          child: Text(
-                            currentCard.category?.toUpperCase() ?? l10n.translate('activity'),
-                            style: TextStyle(
-                              fontSize: 12.fSize, fontWeight: FontWeight.bold,
-                              color: _getCardColor(currentCard.category), letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20.h),
-                        Text(
-                          currentCard.getLocalizedQuestion(Localizations.localeOf(context).languageCode),
-                          style: TextStyle(fontSize: 20.fSize, fontWeight: FontWeight.bold, color: const Color(0xFF1F2933), height: 1.3),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (currentCard.description != null) ...[
-                          SizedBox(height: 16.h),
-                          Text(
-                            currentCard.getLocalizedDescription(Localizations.localeOf(context).languageCode) ?? '',
-                            style: TextStyle(fontSize: 15.fSize, color: Colors.grey.shade600, height: 1.4),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                ],
+          Column(
+            children: [
+              GameProgressIndicator(
+                gameId: 'match_and_reveal',
+                current: _currentCardIndex + 1,
+                total: _cards.length,
+                color: primaryColor,
+                label: '${l10n.translate('card')} ${_currentCardIndex + 1} ${l10n.ofLabel} ${_cards.length}',
+                trailingWidget: Text(
+                  '$_currentVoterName\'s ${l10n.translate('turn')}',
+                  style: TextStyle(fontSize: 13.fSize, color: primaryColor, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
+              Padding(
+                padding: EdgeInsets.all(16.adaptSize),
+                child: Text(
+                  '$_currentVoterName: ${l10n.translate('vote_privately')}',
+                  style: TextStyle(fontSize: 14.fSize, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.adaptSize),
+                  child: Column(
+                    children: [
+                      const Spacer(),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(28.adaptSize),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24.adaptSize),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16.adaptSize, vertical: 6.adaptSize),
+                              decoration: BoxDecoration(
+                                color: _getCardColor(currentCard.category).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20.adaptSize),
+                              ),
+                              child: Text(
+                                currentCard.category?.toUpperCase() ?? l10n.translate('activity'),
+                                style: TextStyle(
+                                  fontSize: 12.fSize, fontWeight: FontWeight.bold,
+                                  color: _getCardColor(currentCard.category), letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20.h),
+                            Text(
+                              currentCard.getLocalizedQuestion(Localizations.localeOf(context).languageCode),
+                              style: TextStyle(fontSize: 20.fSize, fontWeight: FontWeight.bold, color: const Color(0xFF1F2933), height: 1.3),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (currentCard.description != null) ...[
+                              SizedBox(height: 16.h),
+                              Text(
+                                currentCard.getLocalizedDescription(Localizations.localeOf(context).languageCode) ?? '',
+                                style: TextStyle(fontSize: 15.fSize, color: Colors.grey.shade600, height: 1.4),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(20.adaptSize),
+                color: Colors.white,
+                child: Row(
+                  children: [
+                    Expanded(child: _buildVoteButton(l10n.translate('no'), Icons.close, Colors.grey, VoteValue.no)),
+                    SizedBox(width: 12.adaptSize),
+                    Expanded(child: _buildVoteButton(l10n.translate('maybe'), Icons.touch_app, const Color(0xFFFF9800), VoteValue.maybe)),
+                    SizedBox(width: 12.adaptSize),
+                    Expanded(child: _buildVoteButton(l10n.translate('yes'), Icons.favorite, const Color(0xFF4CAF50), VoteValue.yes)),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Container(
-            padding: EdgeInsets.all(20.adaptSize),
-            color: Colors.white,
-            child: Row(
-              children: [
-                Expanded(child: _buildVoteButton(l10n.translate('no'), Icons.close, Colors.grey, VoteValue.no)),
-                SizedBox(width: 12.adaptSize),
-                Expanded(child: _buildVoteButton(l10n.translate('maybe'), Icons.touch_app, const Color(0xFFFF9800), VoteValue.maybe)),
-                SizedBox(width: 12.adaptSize),
-                Expanded(child: _buildVoteButton(l10n.translate('yes'), Icons.favorite, const Color(0xFF4CAF50), VoteValue.yes)),
-              ],
+          if (_showDimOverlay)
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: _showDimOverlay ? 1.0 : 0.0,
+              child: Container(color: Colors.black54),
             ),
-          ),
         ],
       ),
     );
@@ -511,25 +603,35 @@ class _MatchAndRevealScreenState extends State<MatchAndRevealScreen> {
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(24.adaptSize, 20.adaptSize, 24.adaptSize, 16.adaptSize),
-            color: primaryColor.withOpacity(0.1),
-            child: Column(
-              children: [
-                Icon(Icons.favorite, size: 48.adaptSize, color: primaryColor),
-                SizedBox(height: 8.h),
-                Text(
-                  l10n.translate('your_matches'),
-                  style: TextStyle(fontSize: 24.fSize, fontWeight: FontWeight.bold, color: primaryColor),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.elasticOut,
+            builder: (context, scale, child) {
+              return Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.fromLTRB(24.adaptSize, 20.adaptSize, 24.adaptSize, 16.adaptSize),
+                  color: primaryColor.withOpacity(0.1),
+                  child: Column(
+                    children: [
+                      Icon(Icons.celebration, size: 48.adaptSize, color: primaryColor),
+                      SizedBox(height: 8.h),
+                      Text(
+                        l10n.translate('your_matches'),
+                        style: TextStyle(fontSize: 24.fSize, fontWeight: FontWeight.bold, color: primaryColor),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        '${matches.length} / ${_cards.length} ${l10n.translate('matches_found')}',
+                        style: TextStyle(fontSize: 18.fSize, color: primaryColor, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  '${matches.length} ${l10n.ofLabel} ${_cards.length} ${l10n.translate('matches_found')}',
-                  style: TextStyle(fontSize: 16.fSize, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
+              );
+            },
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.adaptSize, vertical: 12.h),

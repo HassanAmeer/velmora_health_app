@@ -302,6 +302,152 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
     }
   }
 
+  /// Generate 12 Match & Reveal cards via Claude (or fallback provider).
+  /// Returns 4 Soft + 4 Adventurous + 4 Deep cards.
+  Future<List<GameQuestion>> generateMatchAndRevealCards() async {
+    try {
+      final aiConfigDoc = await _firestore
+          .collection('ai_config')
+          .doc('settings')
+          .get();
+
+      if (!aiConfigDoc.exists || aiConfigDoc.data() == null) {
+        return _getDefaultQuestions('match_and_reveal');
+      }
+
+      final aiConfig = aiConfigDoc.data()!;
+      final enabled = aiConfig['enabled'] ?? false;
+      if (!enabled) return _getDefaultQuestions('match_and_reveal');
+
+      final apiKey = aiConfig['apiKey'] as String?;
+      final provider = (aiConfig['provider'] as String? ?? 'gemini').toLowerCase();
+
+      if (apiKey == null || apiKey.isEmpty || apiKey == 'PLACEHOLDER_KEY') {
+        return _getDefaultQuestions('match_and_reveal');
+      }
+
+      const prompt = 'Generate exactly 12 unique romantic and intimacy activity cards for a married couple playing on a single shared device. Return 4 Soft, 4 Adventurous, and 4 Deep cards. Each card must feel distinct with no repetition. Return only a valid JSON array with fields: id, title, description, intensity. No markdown, no extra text.';
+
+      List<GameQuestion>? cards;
+
+      if (provider == 'claude') {
+        final claudeKey = aiConfig['claudeApiKey'] as String? ?? apiKey;
+        cards = await _callClaudeForCards(claudeKey, prompt);
+      } else {
+        cards = await _callGeminiForCards(apiKey, prompt, aiConfig);
+      }
+
+      if (cards != null && cards.length == 12) return cards;
+      return _getDefaultQuestions('match_and_reveal');
+    } catch (e) {
+      return _getDefaultQuestions('match_and_reveal');
+    }
+  }
+
+  Future<List<GameQuestion>?> _callClaudeForCards(
+    String apiKey,
+    String prompt,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.anthropic.com/v1/messages'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: jsonEncode({
+          'model': 'claude-sonnet-4-20250514',
+          'max_tokens': 1500,
+          'system': 'You only respond with valid JSON arrays. No markdown, no explanation.',
+          'messages': [
+            {'role': 'user', 'content': prompt},
+          ],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final content = data['content'] as List?;
+        if (content != null && content.isNotEmpty) {
+          final text = content[0]['text'] as String?;
+          if (text != null && text.isNotEmpty) {
+            return _parseCardJsonArray(text.trim());
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<List<GameQuestion>?> _callGeminiForCards(
+    String apiKey,
+    String prompt,
+    Map<String, dynamic> aiConfig,
+  ) async {
+    try {
+      final model = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
+      final apiUrl =
+          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
+
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'contents': [
+            {'parts': [{'text': prompt}]},
+          ],
+          'generationConfig': {
+            'maxOutputTokens': 1500,
+            'temperature': 0.7,
+          },
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['candidates'] != null &&
+            data['candidates'].isNotEmpty &&
+            data['candidates'][0]['content'] != null &&
+            data['candidates'][0]['content']['parts'] != null &&
+            data['candidates'][0]['content']['parts'].isNotEmpty) {
+          final text = data['candidates'][0]['content']['parts'][0]['text'] as String;
+          return _parseCardJsonArray(text.trim());
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<GameQuestion> _parseCardJsonArray(String text) {
+    try {
+      // Strip any markdown code fences if present
+      String clean = text;
+      if (clean.startsWith('```')) {
+        clean = clean.replaceAll(RegExp(r'^```(?:json)?\s*'), '');
+        clean = clean.replaceAll(RegExp(r'\s*```$'), '');
+      }
+      final list = jsonDecode(clean) as List;
+      final cards = <GameQuestion>[];
+      for (int i = 0; i < list.length; i++) {
+        final item = list[i] as Map<String, dynamic>;
+        cards.add(GameQuestion(
+          id: item['id']?.toString() ?? 'mcr_$i',
+          question: item['title']?.toString() ?? '',
+          description: item['description']?.toString(),
+          category: item['intensity']?.toString(),
+        ));
+      }
+      return cards;
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<GameQuestion?> _callClaudeAPI(
     String apiKey,
     String prompt,
