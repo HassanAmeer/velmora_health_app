@@ -23,7 +23,11 @@ import {
     DialogActions,
     Button,
     Alert,
-    Stack
+    Stack,
+    FormControl,
+    Select,
+    MenuItem,
+    Drawer
 } from '@mui/material';
 import {
     Search,
@@ -37,6 +41,7 @@ import {
     FitnessCenter,
     Apple,
     Google,
+    Android,
     Email
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -53,6 +58,9 @@ const UserListPage: React.FC = () => {
     const [permDeleting, setPermDeleting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all');
+    const [platformFilter, setPlatformFilter] = useState<string>('all');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -69,10 +77,21 @@ const UserListPage: React.FC = () => {
         fetchUsers();
     }, []);
 
-    const filteredUsers = users.filter(user =>
-        user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesSubscription = subscriptionFilter === 'all' ||
+            (subscriptionFilter === 'free' && user.subscriptionStatus === 'free') ||
+            (subscriptionFilter === 'trial' && user.subscriptionStatus === 'trial') ||
+            (subscriptionFilter === 'paid' && (user.subscriptionStatus === 'trial' || user.subscriptionStatus === 'premium'));
+
+        const matchesPlatform = platformFilter === 'all' ||
+            (platformFilter === 'ios' && user.authProvider === 'apple') ||
+            (platformFilter === 'android' && user.authProvider !== 'apple');
+
+        return matchesSearch && matchesSubscription && matchesPlatform;
+    });
 
     const getStatusChip = (user: UserProfile) => {
         if (user.deleted) return <Chip label="DELETED" color="error" variant="outlined" size="small" />;
@@ -185,7 +204,10 @@ const UserListPage: React.FC = () => {
                         }}
                         sx={{ bgcolor: 'white', borderRadius: 1, width: { xs: '100%', sm: 300 } }}
                     />
-                    <IconButton sx={{ bgcolor: 'white', border: '1px solid #E2E8F0', alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+                    <IconButton
+                        sx={{ bgcolor: 'white', border: '1px solid #E2E8F0', alignSelf: { xs: 'flex-start', sm: 'center' } }}
+                        onClick={() => setFilterDrawerOpen(true)}
+                    >
                         <FilterList />
                     </IconButton>
                 </Stack>
@@ -232,6 +254,11 @@ const UserListPage: React.FC = () => {
                                                         user.authProvider === 'apple' ? <Apple sx={{ fontSize: 14 }} color="action" /> :
                                                             <Email sx={{ fontSize: 14 }} color="action" />}
                                                     <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                                                    {user.authProvider === 'apple' ? (
+                                                        <Chip label="iOS" size="small" variant="outlined" sx={{ fontSize: 10, ml: 0.5 }} />
+                                                    ) : (
+                                                        <Chip label="Android" size="small" variant="outlined" sx={{ fontSize: 10, ml: 0.5 }} />
+                                                    )}
                                                 </Box>
                                             </Box>
                                         </Box>
@@ -414,6 +441,49 @@ const UserListPage: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Filter Drawer */}
+            <Drawer anchor="right" open={filterDrawerOpen} onClose={() => setFilterDrawerOpen(false)}>
+                <Box sx={{ width: 280, p: 2 }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Filters</Typography>
+
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Subscription</Typography>
+                    <FormControl fullWidth size="small" sx={{ mb: 3 }}>
+                        <Select
+                            value={subscriptionFilter}
+                            onChange={(e) => setSubscriptionFilter(e.target.value)}
+                        >
+                            <MenuItem value="all">All</MenuItem>
+                            <MenuItem value="free">Free</MenuItem>
+                            <MenuItem value="trial">Trial</MenuItem>
+                            <MenuItem value="paid">Paid (Trial/Premium)</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Platform</Typography>
+                    <FormControl fullWidth size="small" sx={{ mb: 3 }}>
+                        <Select
+                            value={platformFilter}
+                            onChange={(e) => setPlatformFilter(e.target.value)}
+                        >
+                            <MenuItem value="all">All</MenuItem>
+                            <MenuItem value="ios">iOS</MenuItem>
+                            <MenuItem value="android">Android</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={() => {
+                            setSubscriptionFilter('all');
+                            setPlatformFilter('all');
+                        }}
+                    >
+                        Clear Filters
+                    </Button>
+                </Box>
+            </Drawer>
         </Box>
     );
 };
