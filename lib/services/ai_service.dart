@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:velmora/services/gemini-ai.dart';
+import 'package:velmora/services/claude-ai.dart';
 
 /// AI Service for Gemini AI integration with Firestore control
 ///
@@ -16,11 +17,18 @@ class AIService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Provider selection
+  String _provider = 'gemini';
+
   // Gemini API configuration
   String? _apiKey;
   String _model = 'gemini-2.5-flash';
   String _apiUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+  // Claude API configuration
+  String? _claudeApiKey;
+  String _claudeModel = 'claude-sonnet-4-5-20250929';
 
   // AI Settings from Firestore
   Map<String, dynamic> _aiSettings = {};
@@ -56,15 +64,28 @@ class AIService {
         _aiSettings = configDoc.data() ?? {};
         _apiKey = _aiSettings['apiKey'] as String?;
 
-        // Override API URL if custom model is set
+        // Provider selection
+        _provider = (_aiSettings['provider'] as String? ?? 'gemini').toLowerCase();
+
+        // Claude config
+        _claudeApiKey = _aiSettings['claudeApiKey'] as String?;
+        final rawClaudeModel = _aiSettings['claudeModel'] as String?;
+        if (rawClaudeModel != null && rawClaudeModel.trim().isNotEmpty) {
+          _claudeModel = rawClaudeModel.trim();
+          // Auto-correct known deprecated model names
+          if (_claudeModel == 'claude-3-5-sonnet-20240620' || _claudeModel == 'claude-3-5-sonnet-20241022') {
+            _claudeModel = 'claude-sonnet-4-5-20250929';
+            debugPrint('⚠️ Auto-corrected deprecated Claude model to $_claudeModel');
+          }
+        } else {
+          _claudeModel = 'claude-sonnet-4-5-20250929';
+        }
+
+        // Gemini model configuration
         final rawModel = _aiSettings['model'];
-        debugPrint(
-          '🔍 Raw model from Firestore: $rawModel (type: ${rawModel.runtimeType})',
-        );
         String? model = rawModel as String?;
         if (model != null && model.trim().isNotEmpty) {
           model = model.trim();
-          // Strip any 'models/' prefix to avoid duplication, then re-add it
           if (model.startsWith('models/')) {
             model = model.replaceFirst('models/', '');
           }
@@ -73,18 +94,19 @@ class AIService {
           _model = 'gemini-2.5-flash';
         }
 
-        // Build API URL — model goes ONLY in the URL path, NOT in request body
+        // Build Gemini API URL
         _apiUrl =
             'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
-        debugPrint('🌐 Gemini API URL: $_apiUrl');
+
+        debugPrint('🔮 [AI] Provider: $_provider | Gemini Model: $_model | Claude Model: $_claudeModel');
       }
 
       // Fallback: If no config in Firestore, set to null
       if (_apiKey == null || _apiKey!.isEmpty) {
         _apiKey = null;
-        debugPrint(
-          'No API key found in Firestore. Please configure in ai_config/settings document.',
-        );
+      }
+      if (_claudeApiKey == null || _claudeApiKey!.isEmpty) {
+        _claudeApiKey = null;
       }
     } catch (e) {
       debugPrint('Error loading AI config: $e');
@@ -150,33 +172,21 @@ class AIService {
     }
   }
 
-  /// Generate AI response using Gemini API
-  ///
-  /// Returns the AI response text or throws an exception on error
+  /// Generate AI response using the active provider (Gemini or Claude)
   Future<String> generateResponse(
     String userMessage, {
     String? languageCode,
   }) async {
-    // Always reload config to get latest system instruction from admin
     await _loadAIConfig();
 
-    if (_apiKey == null || _apiKey!.isEmpty) {
-      throw Exception(
-        'AI Service is not configured. Please contact administrator.',
-      );
-    }
-
-    // Check if AI is enabled in Firestore config
     if (_aiSettings['enabled'] == false) {
       throw Exception('AI chat is currently disabled by admin');
     }
 
     try {
-      // Get conversation history and language
       final history = await _getConversationHistory();
       final language = languageCode ?? await _getUserLanguage();
 
-      // Get user profile context (names)
       String userContext = '';
       if (currentUserId != null) {
         final userDoc = await _firestore
@@ -190,49 +200,21 @@ class AIService {
             'You are speaking with $name. Their partner\'s name is $partnerName.';
       }
 
-      // Build the prompt with context
-      final requestBody = _buildGeminiRequestBody(
-        userMessage,
-        language,
-        history,
-        userContext,
-      );
+      final systemInstruction =
+          _aiSettings['systemInstruction'] as String? ??
+          'You are Velmora AI, a helpful relationship coach.';
+      final languageName = _getLanguageName(language);
+      final maxTokens = _aiSettings['maxTokens'] as int? ?? 500;
+      final temperature =
+          (_aiSettings['temperature'] as num?)?.toDouble() ?? 0.7;
 
-      debugPrint(' 🧠 AI System Instruction Language: $language');
-      debugPrint(
-        ' 🧠 AI Full Prompt: ${requestBody['systemInstruction']['parts'][0]['text']}',
-      );
+      if (_provider == 'claude') {
+        if (_claudeApiKey == null || _claudeApiKey!.isEmpty) {
+          throw Exception('Claude API key not configured in admin panel.');
+        }
+        debugPrint('🔮 [AI] Active Provider: CLAUDE | Model: $_claudeModel');
 
-      // Call Gemini API
-      final response = await _callGeminiAPI(requestBody);
-
-      return response;
-    } catch (e, stackTrace) {
-      debugPrint(
-        'generateResponse: 💥 AI generation error: $e , st: $stackTrace',
-      );
-      throw Exception('Failed to generate response. Please try again.');
-    }
-  }
-
-  /// Build the Gemini API request body with system instructions and conversation history
-  Map<String, dynamic> _buildGeminiRequestBody(
-    String userMessage,
-    String language,
-    List<Map<String, dynamic>> history,
-    String userContext,
-  ) {
-    // Get system instruction from Firestore or use default
-    final systemInstruction =
-        _aiSettings['systemInstruction'] as String? ??
-        'You are Velmora AI, a helpful relationship coach.';
-
-    // Get language name
-    final languageName = _getLanguageName(language);
-
-    // Combine system instruction with language constraint and user context
-    final fullSystemInstruction =
-        '''
+        final fullSystem = '''
 CRITICAL: ALL RESPONSES MUST BE IN $languageName. DO NOT USE ANY OTHER LANGUAGE.
 
 $systemInstruction
@@ -240,167 +222,92 @@ $systemInstruction
 $userContext
 
 LANGUAGE LOCK:
-You are strictly required to respond in $languageName. This is the most important rule. 
-Even if historical messages are in another language, you MUST respond in $languageName only.
-''';
+You are strictly required to respond in $languageName.''';
 
-    // Build the contents (history + current message)
-    final contents = <Map<String, dynamic>>[];
-
-    // LOCK: Prepend a "system reset" to force the AI to respect the chosen language
-    // despite whatever is in the history.
-    contents.add({
-      'role': 'user',
-      'parts': [
-        {
-          'text':
-              '[SYSTEM INSTRUCTION: Interface language is now $languageName. IGNORE the language of previous messages. Respond ONLY in $languageName.]',
-        },
-      ],
-    });
-    contents.add({
-      'role': 'model',
-      'parts': [
-        {
-          'text':
-              'Understood. I will respond to all future messages ONLY in $languageName.',
-        },
-      ],
-    });
-
-    // Add history
-    for (var msg in history) {
-      contents.add({
-        'role': msg['role'],
-        'parts': [
-          {'text': msg['content']},
-        ],
-      });
-    }
-
-    // Add current user message with total lock enforcement
-    contents.add({
-      'role': 'user',
-      'parts': [
-        {
-          'text':
-              'User Message: $userMessage\n\n(IMPORTANT: Answer strictly in $languageName only.)',
-        },
-      ],
-    });
-
-    // Get generation config from Firestore or use defaults
-    final maxTokens = _aiSettings['maxTokens'] as int? ?? 500;
-    final temperature = (_aiSettings['temperature'] as num?)?.toDouble() ?? 0.7;
-    final topK = _aiSettings['topK'] as int? ?? 40;
-    final topP = (_aiSettings['topP'] as num?)?.toDouble() ?? 0.95;
-
-    // Get safety settings from Firestore or use defaults
-    final safetySettingsMap =
-        _aiSettings['safetySettings'] as Map<String, dynamic>? ?? {};
-    final dangerousContent =
-        safetySettingsMap['dangerousContent'] as String? ??
-        'BLOCK_MEDIUM_AND_ABOVE';
-    final harassment =
-        safetySettingsMap['harassment'] as String? ?? 'BLOCK_MEDIUM_AND_ABOVE';
-    final hateSpeech =
-        safetySettingsMap['hateSpeech'] as String? ?? 'BLOCK_MEDIUM_AND_ABOVE';
-    final sexuallyExplicit =
-        safetySettingsMap['sexuallyExplicit'] as String? ??
-        'BLOCK_MEDIUM_AND_ABOVE';
-
-    return {
-      'systemInstruction': {
-        'parts': [
-          {'text': fullSystemInstruction},
-        ],
-      },
-      'contents': contents,
-      'generationConfig': {
-        'maxOutputTokens': maxTokens,
-        'temperature': temperature,
-        'topK': topK,
-        'topP': topP,
-      },
-      'safetySettings': [
-        {
-          'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-          'threshold': sexuallyExplicit,
-        },
-        {'category': 'HARM_CATEGORY_HATE_SPEECH', 'threshold': hateSpeech},
-        {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': harassment},
-        {
-          'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',
-          'threshold': dangerousContent,
-        },
-      ],
-    };
-  }
-
-  /// Call Gemini API directly
-  Future<String> _callGeminiAPI(Map<String, dynamic> requestBody) async {
-    if (_apiKey == null || _apiKey!.isEmpty) {
-      throw Exception('API key not configured');
-    }
-
-    // Remove 'model' from body if accidentally included — model is URL-only
-    debugPrint('📡 Calling Gemini API: $_apiUrl');
-    debugPrint('🔑 API Key present: ${_apiKey!.isNotEmpty}');
-    debugPrint('📦 Request body keys: ${requestBody.keys.join(", ")}');
-
-    try {
-      final url = Uri.parse('$_apiUrl?key=$_apiKey');
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
-
-      debugPrint('📥 Response status: ${response.statusCode}');
-      debugPrint('📥 Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        // Extract response text
-        if (data['candidates'] != null &&
-            data['candidates'].isNotEmpty &&
-            data['candidates'][0]['content'] != null &&
-            data['candidates'][0]['content']['parts'] != null &&
-            data['candidates'][0]['content']['parts'].isNotEmpty) {
-          final aiMsg = data['candidates'][0]['content']['parts'][0]['text'];
-          debugPrint(
-            ' ✅ AI Response Successfully Parsed: ${aiMsg.substring(0, aiMsg.length > 50 ? 50 : aiMsg.length)}...',
-          );
-          return aiMsg;
+        final messages = <Map<String, String>>[];
+        for (var msg in history) {
+          messages.add({
+            'role': msg['role'] == 'model' ? 'assistant' : 'user',
+            'content': msg['content'] as String,
+          });
         }
+        messages.add({'role': 'user', 'content': userMessage});
 
-        throw Exception('Invalid response format from AI');
-      } else {
-        final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['error']?['message'] ?? 'Unknown error';
-        debugPrint(
-          '❌ Gemini API error (${response.statusCode}): $errorMessage',
+        final response = await ClaudeProvider.generateResponse(
+          apiKey: _claudeApiKey!,
+          model: _claudeModel,
+          systemInstruction: fullSystem,
+          messages: messages,
+          maxTokens: maxTokens,
+          temperature: temperature,
         );
-        debugPrint('❌ Full error response: ${response.body}');
-
-        if (response.statusCode == 403) {
-          throw Exception(
-            'API key invalid or expired. Please check your API key in admin panel.',
-          );
-        } else if (response.statusCode == 400) {
-          throw Exception('Invalid request: $errorMessage');
-        } else if (response.statusCode == 429) {
-          throw Exception('Rate limit exceeded. Please try again later.');
-        } else {
-          throw Exception('AI service error: $errorMessage');
+        debugPrint('✅ [AI] Response received from CLAUDE');
+        return response;
+      } else {
+        if (_apiKey == null || _apiKey!.isEmpty) {
+          throw Exception('Gemini API key not configured in admin panel.');
         }
+        debugPrint('🔮 [AI] Active Provider: GEMINI | Model: $_model');
+
+        final fullSystem = '''
+CRITICAL: ALL RESPONSES MUST BE IN $languageName. DO NOT USE ANY OTHER LANGUAGE.
+
+$systemInstruction
+
+$userContext
+
+LANGUAGE LOCK:
+You are strictly required to respond in $languageName. This is the most important rule.
+Even if historical messages are in another language, you MUST respond in $languageName only.''';
+
+        final contents = <Map<String, dynamic>>[];
+        contents.add({
+          'role': 'user',
+          'parts': [
+            {'text': '[SYSTEM: Interface language is $languageName. Respond ONLY in $languageName.]'},
+          ],
+        });
+        contents.add({
+          'role': 'model',
+          'parts': [
+            {'text': 'Understood. I will respond only in $languageName.'},
+          ],
+        });
+        for (var msg in history) {
+          contents.add({
+            'role': msg['role'],
+            'parts': [{'text': msg['content']}],
+          });
+        }
+        contents.add({
+          'role': 'user',
+          'parts': [
+            {'text': 'User Message: $userMessage\n\n(Answer strictly in $languageName only.)'},
+          ],
+        });
+
+        final topK = _aiSettings['topK'] as int? ?? 40;
+        final topP = (_aiSettings['topP'] as num?)?.toDouble() ?? 0.95;
+        final safetySettings =
+            _aiSettings['safetySettings'] as Map<String, dynamic>?;
+
+        final response = await GeminiProvider.generateResponse(
+          apiKey: _apiKey!,
+          model: _model,
+          systemInstruction: fullSystem,
+          contents: contents,
+          maxTokens: maxTokens,
+          temperature: temperature,
+          topK: topK,
+          topP: topP,
+          safetySettings: safetySettings,
+        );
+        debugPrint('✅ [AI] Response received from GEMINI');
+        return response;
       }
-    } catch (e) {
-      debugPrint('💥 Exception in _callGeminiAPI: $e');
-      if (e is Exception) rethrow;
-      throw Exception('Network error. Please check your connection.');
+    } catch (e, stackTrace) {
+      debugPrint('generateResponse: 💥 AI error: $e, st: $stackTrace');
+      throw Exception('Failed to generate response. Please try again.');
     }
   }
 
@@ -420,9 +327,11 @@ Even if historical messages are in another language, you MUST respond in $langua
   Future<bool> isAvailable() async {
     try {
       await _loadAIConfig();
-      return _apiKey != null &&
-          _apiKey!.isNotEmpty &&
-          _aiSettings['enabled'] != false;
+      if (_aiSettings['enabled'] == false) return false;
+      if (_provider == 'claude') {
+        return _claudeApiKey != null && _claudeApiKey!.isNotEmpty;
+      }
+      return _apiKey != null && _apiKey!.isNotEmpty;
     } catch (e) {
       return false;
     }
@@ -433,8 +342,16 @@ Even if historical messages are in another language, you MUST respond in $langua
 
   /// Generate game content based on game ID
   Future<List<Map<String, dynamic>>> generateGameContent(String gameId) async {
-    if (_apiKey == null || _apiKey!.isEmpty) {
-      throw Exception('AI Service is not configured.');
+    await _loadAIConfig();
+
+    if (_provider == 'claude') {
+      if (_claudeApiKey == null || _claudeApiKey!.isEmpty) {
+        throw Exception('Claude API key not configured.');
+      }
+    } else {
+      if (_apiKey == null || _apiKey!.isEmpty) {
+        throw Exception('Gemini API key not configured.');
+      }
     }
 
     String prompt = '';
@@ -492,21 +409,36 @@ Even if historical messages are in another language, you MUST respond in $langua
         throw Exception('Unknown game ID: $gameId');
     }
 
-    try {
-      final response = await _callGeminiAPI({
-        'contents': [
-          {
-            'parts': [
-              {
-                'text':
-                    "$prompt\n\nIMPORTANT: Return ONLY valid JSON. No markdown formatting, no backticks.",
-              },
-            ],
-          },
-        ],
-      });
+    final apiPrompt =
+        "$prompt\n\nIMPORTANT: Return ONLY valid JSON. No markdown formatting, no backticks.";
+    final maxTokens = _aiSettings['maxTokens'] as int? ?? 1000;
+    final temperature =
+        (_aiSettings['temperature'] as num?)?.toDouble() ?? 0.7;
 
-      // Clean up response if it contains markdown code blocks
+    try {
+      String response;
+      if (_provider == 'claude') {
+        debugPrint('🔮 [AI-Game] Active Provider: CLAUDE | Model: $_claudeModel');
+        response = await ClaudeProvider.generateSimple(
+          apiKey: _claudeApiKey!,
+          model: _claudeModel,
+          prompt: apiPrompt,
+          maxTokens: maxTokens,
+          temperature: temperature,
+        );
+        debugPrint('✅ [AI-Game] Response received from CLAUDE');
+      } else {
+        debugPrint('🔮 [AI-Game] Active Provider: GEMINI | Model: $_model');
+        response = await GeminiProvider.generateSimple(
+          apiKey: _apiKey!,
+          model: _model,
+          prompt: apiPrompt,
+          maxTokens: maxTokens,
+          temperature: temperature,
+        );
+        debugPrint('✅ [AI-Game] Response received from GEMINI');
+      }
+
       String cleanJson = response.trim();
       if (cleanJson.startsWith('```json')) {
         cleanJson = cleanJson.substring(7, cleanJson.lastIndexOf('```')).trim();

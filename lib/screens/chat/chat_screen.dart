@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velmora/constants/app_colors.dart';
 import 'package:velmora/l10n/app_localizations.dart';
 import 'package:velmora/services/chat_service.dart';
+import 'package:velmora/services/ai_service.dart';
 import 'package:velmora/utils/responsive_sizer.dart';
 import 'package:flutter/material.dart';
 import 'package:velmora/widgets/skeletons/chat_skeleton.dart';
@@ -32,6 +33,20 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _chatStream = _chatService.getChatMessages();
     _scrollController.addListener(_onScroll);
+    _preloadAIConfig();
+  }
+
+  /// Preload AI config from Firestore so keys are ready when user sends a message
+  Future<void> _preloadAIConfig() async {
+    // Force fresh config load even if already initialized
+    final aiService = AIService();
+    if (aiService.settings.isNotEmpty) {
+      // Already has config from startup, just log it
+      final s = aiService.settings;
+      debugPrint('🔮 [ChatScreen] AI ready | Provider: ${s['provider']} | Gemini key present: ${(s['apiKey'] as String? ?? '').isNotEmpty} | Claude key present: ${(s['claudeApiKey'] as String? ?? '').isNotEmpty}');
+    } else {
+      debugPrint('🔮 [ChatScreen] AI config not yet loaded, will load on first message');
+    }
   }
 
   void _onScroll() {

@@ -17,6 +17,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.69"
+  ai_sdk_anthropic:
+    dependency: "direct main"
+    description:
+      name: ai_sdk_anthropic
+      sha256: "068e143464748dc7c6a7fbbe15aa25800503ad8a9b33301d84cb452a74c6b717"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
+  ai_sdk_dart:
+    dependency: "direct main"
+    description:
+      name: ai_sdk_dart
+      sha256: "6d3e683fc9ee0609cb32cb21be62544881181bd31b176cf8ec298e0df3c4b012"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
+  ai_sdk_provider:
+    dependency: transitive
+    description:
+      name: ai_sdk_provider
+      sha256: ebd6301a8edc18897f573a800a6b30c798e7fb72ab3ff0d61c77f73ada471fa5
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   archive:
     dependency: transitive
     description:
@@ -461,6 +485,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  freezed_annotation:
+    dependency: transitive
+    description:
+      name: freezed_annotation
+      sha256: "7294967ff0a6d98638e7acb774aac3af2550777accd8149c90af5b014e6d44d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   google_cloud:
     dependency: transitive
     description:
@@ -1251,5 +1283,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.9.0 <4.0.0"
+  dart: ">=3.11.1 <4.0.0"
   flutter: ">=3.35.0"

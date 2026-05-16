@@ -12,6 +12,7 @@ import 'package:velmora/services/subscription_service.dart';
 import 'package:velmora/services/user_service.dart';
 import 'package:velmora/utils/responsive_sizer.dart';
 import 'package:velmora/widgets/skeletons/settings_skeleton.dart';
+import 'package:velmora/screens/debug/ai_debug_console_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -204,6 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                       ]),
+
                       SizedBox(height: 20.h),
                       _buildSettingsGroup([
                         _buildSettingsItem(
@@ -480,12 +482,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       padding: EdgeInsets.fromLTRB(24.w, 80.h, 24.w, 0),
-      child: Text(
-        l10n.settings,
-        style: TextStyle(
-          fontSize: 32.fSize,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+      child: GestureDetector(
+        onLongPress: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AiDebugConsolePage()),
+          );
+        },
+        child: Text(
+          l10n.settings,
+          style: TextStyle(
+            fontSize: 32.fSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );

@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
 import 'package:velmora/models/game_question.dart';
+import 'package:velmora/services/claude-ai.dart';
+import 'package:velmora/services/gemini-ai.dart';
 
 /// Service to manage game questions with AI generation and local storage
 class GameQuestionsService {
@@ -90,7 +92,6 @@ class GameQuestionsService {
   /// Generate new questions using AI and store in local storage
   Future<void> _generateQuestionsWithAI(String gameId) async {
     try {
-      // Get AI configuration
       final aiConfigDoc = await _firestore
           .collection('ai_config')
           .doc('settings')
@@ -115,15 +116,56 @@ class GameQuestionsService {
         return;
       }
 
-      // Generate questions based on game type
       final prompt = _getPromptForGame(gameId);
-      final questions = await _callGeminiAPI(apiKey, prompt, aiConfig);
+      final provider = (aiConfig['provider'] as String? ?? 'gemini')
+          .toLowerCase();
+      final maxTokens = aiConfig['maxTokens'] as int? ?? 1000;
+      final temperature = (aiConfig['temperature'] as num?)?.toDouble() ?? 0.7;
+
+      List<GameQuestion> questions;
+      if (provider == 'claude') {
+        final claudeKey = aiConfig['claudeApiKey'] as String? ?? apiKey;
+        final claudeModel =
+            aiConfig['claudeModel'] as String? ?? 'claude-sonnet-4-5-20250929';
+        debugPrint(
+          '🔮 [GameQuestions] Active Provider: CLAUDE | Model: $claudeModel',
+        );
+        final responseText = await ClaudeProvider.generateResponse(
+          apiKey: claudeKey,
+          model: claudeModel,
+          systemInstruction:
+              'You only respond with valid JSON arrays. No markdown, no explanation.',
+          messages: [
+            {'role': 'user', 'content': prompt},
+          ],
+          maxTokens: maxTokens,
+          temperature: temperature,
+        );
+        questions = _parseQuestionsFromResponse(responseText);
+        debugPrint(
+          '✅ [GameQuestions] Questions received from CLAUDE (model: $claudeModel)',
+        );
+      } else {
+        final geminiModel = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
+        debugPrint(
+          '🔮 [GameQuestions] Active Provider: GEMINI | Model: $geminiModel',
+        );
+        final responseText = await GeminiProvider.generateSimple(
+          apiKey: apiKey,
+          model: geminiModel,
+          prompt: prompt,
+          maxTokens: maxTokens,
+          temperature: temperature,
+        );
+        questions = _parseQuestionsFromResponse(responseText);
+        debugPrint(
+          '✅ [GameQuestions] Questions received from GEMINI (model: $geminiModel)',
+        );
+      }
 
       if (questions.isNotEmpty) {
-        // Save to local storage
         await _saveQuestionsToLocal(gameId, questions);
 
-        // Update last generated timestamp
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
           '$_lastGeneratedPrefix$gameId',
@@ -132,82 +174,24 @@ class GameQuestionsService {
       }
     } catch (e) {
       print('Error generating questions with AI: $e');
-      // Silently fail - will use default questions
     }
   }
 
-  /// Call Gemini API to generate questions
-  Future<List<GameQuestion>> _callGeminiAPI(
-    String apiKey,
-    String prompt,
-    Map<String, dynamic> aiConfig,
-  ) async {
+  List<GameQuestion> _parseQuestionsFromResponse(String text) {
+    String clean = text.trim();
+    if (clean.startsWith('```json')) {
+      clean = clean.substring(7, clean.lastIndexOf('```')).trim();
+    } else if (clean.startsWith('```')) {
+      clean = clean.substring(3, clean.lastIndexOf('```')).trim();
+    }
     try {
-      final model = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
-      final apiUrl =
-          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
-
-      final maxTokens = aiConfig['maxTokens'] as int? ?? 1000;
-      final temperature = (aiConfig['temperature'] as num?)?.toDouble() ?? 0.7;
-
-      final requestBody = {
-        'contents': [
-          {
-            'parts': [
-              {'text': prompt},
-            ],
-          },
-        ],
-        'generationConfig': {
-          'maxOutputTokens': maxTokens,
-          'temperature': temperature,
-        },
-      };
-
-      print('🚀 [GameQuestions] Calling Gemini API for game content...');
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data['candidates'] != null &&
-            data['candidates'].isNotEmpty &&
-            data['candidates'][0]['content'] != null &&
-            data['candidates'][0]['content']['parts'] != null &&
-            data['candidates'][0]['content']['parts'].isNotEmpty) {
-          String text = data['candidates'][0]['content']['parts'][0]['text'];
-
-          // Clean up response if it contains markdown
-          text = text.trim();
-          if (text.startsWith('```json')) {
-            text = text.substring(7, text.lastIndexOf('```')).trim();
-          } else if (text.startsWith('```')) {
-            text = text.substring(3, text.lastIndexOf('```')).trim();
-          }
-
-          try {
-            final List<dynamic> decoded = jsonDecode(text);
-            return decoded
-                .map((q) => GameQuestion.fromJson(Map<String, dynamic>.from(q)))
-                .toList();
-          } catch (e) {
-            print('❌ [GameQuestions] JSON Parse Error: $e');
-            print('❌ [GameQuestions] Raw Response: $text');
-            return [];
-          }
-        }
-      } else {
-        print(
-          '❌ [GameQuestions] API Error (${response.statusCode}): ${response.body}',
-        );
-      }
-      return [];
+      final List<dynamic> decoded = jsonDecode(clean);
+      return decoded
+          .map((q) => GameQuestion.fromJson(Map<String, dynamic>.from(q)))
+          .toList();
     } catch (e) {
-      print('❌ [GameQuestions] Exception calling Gemini API: $e');
+      print('❌ [GameQuestions] JSON Parse Error: $e');
+      print('❌ [GameQuestions] Raw Response: $clean');
       return [];
     }
   }
@@ -279,7 +263,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
       if (!enabled) return _getWheelFallbackQuestion(category);
 
       final apiKey = aiConfig['apiKey'] as String?;
-      final provider = (aiConfig['provider'] as String? ?? 'gemini').toLowerCase();
+      final provider = (aiConfig['provider'] as String? ?? 'gemini')
+          .toLowerCase();
 
       if (apiKey == null || apiKey.isEmpty || apiKey == 'PLACEHOLDER_KEY') {
         return _getWheelFallbackQuestion(category);
@@ -290,12 +275,43 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
 
       if (provider == 'claude') {
         final claudeKey = aiConfig['claudeApiKey'] as String? ?? apiKey;
-        question = await _callClaudeAPI(claudeKey, prompt, category);
+        final claudeModel =
+            aiConfig['claudeModel'] as String? ?? 'claude-sonnet-4-5-20250929';
+        debugPrint('🔮 [Wheel] Active Provider: CLAUDE | Model: $claudeModel');
+        final responseText = await ClaudeProvider.generateSimple(
+          apiKey: claudeKey,
+          model: claudeModel,
+          prompt: prompt,
+          maxTokens: 150,
+        );
+        debugPrint(
+          '✅ [Wheel] Response received from CLAUDE (model: $claudeModel)',
+        );
+        question = GameQuestion(
+          id: 'wheel_${DateTime.now().millisecondsSinceEpoch}',
+          question: responseText.trim(),
+          category: category,
+        );
       } else {
-        question = await _callGeminiSingle(apiKey, prompt, aiConfig, category);
+        final geminiModel = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
+        debugPrint('🔮 [Wheel] Active Provider: GEMINI | Model: $geminiModel');
+        final responseText = await GeminiProvider.generateSimple(
+          apiKey: apiKey,
+          model: geminiModel,
+          prompt: prompt,
+          maxTokens: 150,
+        );
+        debugPrint(
+          '✅ [Wheel] Response received from GEMINI (model: $geminiModel)',
+        );
+        question = GameQuestion(
+          id: 'wheel_${DateTime.now().millisecondsSinceEpoch}',
+          question: responseText.trim(),
+          category: category,
+        );
       }
 
-      if (question != null) return question;
+      return question;
       return _getWheelFallbackQuestion(category);
     } catch (e) {
       return _getWheelFallbackQuestion(category);
@@ -320,106 +336,57 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
       if (!enabled) return _getDefaultQuestions('match_and_reveal');
 
       final apiKey = aiConfig['apiKey'] as String?;
-      final provider = (aiConfig['provider'] as String? ?? 'gemini').toLowerCase();
+      final provider = (aiConfig['provider'] as String? ?? 'gemini')
+          .toLowerCase();
 
       if (apiKey == null || apiKey.isEmpty || apiKey == 'PLACEHOLDER_KEY') {
         return _getDefaultQuestions('match_and_reveal');
       }
 
-      const prompt = 'Generate exactly 12 unique romantic and intimacy activity cards for a married couple playing on a single shared device. Return 4 Soft, 4 Adventurous, and 4 Deep cards. Each card must feel distinct with no repetition. Return only a valid JSON array with fields: id, title, description, intensity. No markdown, no extra text.';
+      const prompt =
+          'Generate exactly 12 unique romantic and intimacy activity cards for a married couple playing on a single shared device. Return 4 Soft, 4 Adventurous, and 4 Deep cards. Each card must feel distinct with no repetition. Return only a valid JSON array with fields: id, title, description, intensity. No markdown, no extra text.';
 
       List<GameQuestion>? cards;
 
       if (provider == 'claude') {
         final claudeKey = aiConfig['claudeApiKey'] as String? ?? apiKey;
-        cards = await _callClaudeForCards(claudeKey, prompt);
-      } else {
-        cards = await _callGeminiForCards(apiKey, prompt, aiConfig);
-      }
-
-      if (cards != null && cards.length == 12) return cards;
-      return _getDefaultQuestions('match_and_reveal');
-    } catch (e) {
-      return _getDefaultQuestions('match_and_reveal');
-    }
-  }
-
-  Future<List<GameQuestion>?> _callClaudeForCards(
-    String apiKey,
-    String prompt,
-  ) async {
-    try {
-      final response = await http.post(
-        Uri.parse('https://api.anthropic.com/v1/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: jsonEncode({
-          'model': 'claude-sonnet-4-20250514',
-          'max_tokens': 1500,
-          'system': 'You only respond with valid JSON arrays. No markdown, no explanation.',
-          'messages': [
+        final claudeModel =
+            aiConfig['claudeModel'] as String? ?? 'claude-sonnet-4-5-20250929';
+        debugPrint('🔮 [Cards] Active Provider: CLAUDE | Model: $claudeModel');
+        const cardsSystemPrompt =
+            'You only respond with valid JSON arrays. No markdown, no explanation.';
+        final responseText = await ClaudeProvider.generateResponse(
+          apiKey: claudeKey,
+          model: claudeModel,
+          systemInstruction: cardsSystemPrompt,
+          messages: [
             {'role': 'user', 'content': prompt},
           ],
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['content'] as List?;
-        if (content != null && content.isNotEmpty) {
-          final text = content[0]['text'] as String?;
-          if (text != null && text.isNotEmpty) {
-            return _parseCardJsonArray(text.trim());
-          }
-        }
+          maxTokens: 1500,
+        );
+        cards = _parseCardJsonArray(responseText);
+        debugPrint(
+          '✅ [Cards] Cards received from CLAUDE (model: $claudeModel)',
+        );
+      } else {
+        final geminiModel = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
+        debugPrint('🔮 [Cards] Active Provider: GEMINI | Model: $geminiModel');
+        final responseText = await GeminiProvider.generateSimple(
+          apiKey: apiKey,
+          model: geminiModel,
+          prompt: prompt,
+          maxTokens: 1500,
+        );
+        cards = _parseCardJsonArray(responseText);
+        debugPrint(
+          '✅ [Cards] Cards received from GEMINI (model: $geminiModel)',
+        );
       }
-      return null;
+
+      if (cards.length == 12) return cards;
+      return _getDefaultQuestions('match_and_reveal');
     } catch (e) {
-      return null;
-    }
-  }
-
-  Future<List<GameQuestion>?> _callGeminiForCards(
-    String apiKey,
-    String prompt,
-    Map<String, dynamic> aiConfig,
-  ) async {
-    try {
-      final model = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
-      final apiUrl =
-          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
-
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {'parts': [{'text': prompt}]},
-          ],
-          'generationConfig': {
-            'maxOutputTokens': 1500,
-            'temperature': 0.7,
-          },
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['candidates'] != null &&
-            data['candidates'].isNotEmpty &&
-            data['candidates'][0]['content'] != null &&
-            data['candidates'][0]['content']['parts'] != null &&
-            data['candidates'][0]['content']['parts'].isNotEmpty) {
-          final text = data['candidates'][0]['content']['parts'][0]['text'] as String;
-          return _parseCardJsonArray(text.trim());
-        }
-      }
-      return null;
-    } catch (e) {
-      return null;
+      return _getDefaultQuestions('match_and_reveal');
     }
   }
 
@@ -435,106 +402,18 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
       final cards = <GameQuestion>[];
       for (int i = 0; i < list.length; i++) {
         final item = list[i] as Map<String, dynamic>;
-        cards.add(GameQuestion(
-          id: item['id']?.toString() ?? 'mcr_$i',
-          question: item['title']?.toString() ?? '',
-          description: item['description']?.toString(),
-          category: item['intensity']?.toString(),
-        ));
+        cards.add(
+          GameQuestion(
+            id: item['id']?.toString() ?? 'mcr_$i',
+            question: item['title']?.toString() ?? '',
+            description: item['description']?.toString(),
+            category: item['intensity']?.toString(),
+          ),
+        );
       }
       return cards;
     } catch (e) {
       return [];
-    }
-  }
-
-  Future<GameQuestion?> _callClaudeAPI(
-    String apiKey,
-    String prompt,
-    String category,
-  ) async {
-    try {
-      final response = await http.post(
-        Uri.parse('https://api.anthropic.com/v1/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: jsonEncode({
-          'model': 'claude-sonnet-4-20250514',
-          'max_tokens': 150,
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['content'] as List?;
-        if (content != null && content.isNotEmpty) {
-          final text = content[0]['text'] as String?;
-          if (text != null && text.isNotEmpty) {
-            final cleanText = text.trim();
-            return GameQuestion(
-              id: 'wheel_${DateTime.now().millisecondsSinceEpoch}',
-              question: cleanText,
-              category: category,
-            );
-          }
-        }
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<GameQuestion?> _callGeminiSingle(
-    String apiKey,
-    String prompt,
-    Map<String, dynamic> aiConfig,
-    String category,
-  ) async {
-    try {
-      final model = aiConfig['model'] as String? ?? 'gemini-2.5-flash';
-      final apiUrl =
-          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
-
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {'parts': [{'text': prompt}]},
-          ],
-          'generationConfig': {
-            'maxOutputTokens': 150,
-            'temperature': 0.7,
-          },
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['candidates'] != null &&
-            data['candidates'].isNotEmpty &&
-            data['candidates'][0]['content'] != null &&
-            data['candidates'][0]['content']['parts'] != null &&
-            data['candidates'][0]['content']['parts'].isNotEmpty) {
-          final text = data['candidates'][0]['content']['parts'][0]['text'] as String;
-          final cleanText = text.trim();
-          return GameQuestion(
-            id: 'wheel_${DateTime.now().millisecondsSinceEpoch}',
-            question: cleanText,
-            category: category,
-          );
-        }
-      }
-      return null;
-    } catch (e) {
-      return null;
     }
   }
 
@@ -567,43 +446,129 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
     switch (category) {
       case 'emotional_connection':
         return [
-          GameQuestion(id: 'ec_1', question: 'What moment made you feel closest to me this week?', category: category),
-          GameQuestion(id: 'ec_2', question: 'When did you feel most understood by me lately?', category: category),
-          GameQuestion(id: 'ec_3', question: 'What is one thing I do that makes you feel safe and loved?', category: category),
+          GameQuestion(
+            id: 'ec_1',
+            question: 'What moment made you feel closest to me this week?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'ec_2',
+            question: 'When did you feel most understood by me lately?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'ec_3',
+            question:
+                'What is one thing I do that makes you feel safe and loved?',
+            category: category,
+          ),
         ];
       case 'shared_dreams':
         return [
-          GameQuestion(id: 'sd_1', question: 'Where do you see us five years from today?', category: category),
-          GameQuestion(id: 'sd_2', question: 'What is one dream you want us to accomplish together?', category: category),
-          GameQuestion(id: 'sd_3', question: 'If we could live anywhere in the world, where would it be?', category: category),
+          GameQuestion(
+            id: 'sd_1',
+            question: 'Where do you see us five years from today?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'sd_2',
+            question: 'What is one dream you want us to accomplish together?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'sd_3',
+            question:
+                'If we could live anywhere in the world, where would it be?',
+            category: category,
+          ),
         ];
       case 'conflict_resolution':
         return [
-          GameQuestion(id: 'cr_1', question: 'How can I better support you when we disagree about something?', category: category),
-          GameQuestion(id: 'cr_2', question: 'What is one conflict we handled well, and what made it work?', category: category),
-          GameQuestion(id: 'cr_3', question: 'I feel most heard when you... How would you finish that sentence?', category: category),
+          GameQuestion(
+            id: 'cr_1',
+            question:
+                'How can I better support you when we disagree about something?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'cr_2',
+            question:
+                'What is one conflict we handled well, and what made it work?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'cr_3',
+            question:
+                'I feel most heard when you... How would you finish that sentence?',
+            category: category,
+          ),
         ];
       case 'playful_memories':
         return [
-          GameQuestion(id: 'pm_1', question: 'What is the funniest memory we share together?', category: category),
-          GameQuestion(id: 'pm_2', question: 'What song instantly takes us back to a special moment?', category: category),
-          GameQuestion(id: 'pm_3', question: 'Describe our most spontaneous adventure so far', category: category),
+          GameQuestion(
+            id: 'pm_1',
+            question: 'What is the funniest memory we share together?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'pm_2',
+            question: 'What song instantly takes us back to a special moment?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'pm_3',
+            question: 'Describe our most spontaneous adventure so far',
+            category: category,
+          ),
         ];
       case 'building_the_future':
         return [
-          GameQuestion(id: 'bf_1', question: 'What is one goal you want us to achieve together in the next year?', category: category),
-          GameQuestion(id: 'bf_2', question: 'How can we grow together as a team in our daily lives?', category: category),
-          GameQuestion(id: 'bf_3', question: 'What practical step can we take this month toward our shared dreams?', category: category),
+          GameQuestion(
+            id: 'bf_1',
+            question:
+                'What is one goal you want us to achieve together in the next year?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'bf_2',
+            question: 'How can we grow together as a team in our daily lives?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'bf_3',
+            question:
+                'What practical step can we take this month toward our shared dreams?',
+            category: category,
+          ),
         ];
       case 'values_and_principles':
         return [
-          GameQuestion(id: 'vp_1', question: 'What core value do you think defines our relationship the most?', category: category),
-          GameQuestion(id: 'vp_2', question: 'What principle do you never want us to compromise on?', category: category),
-          GameQuestion(id: 'vp_3', question: 'How have your values changed since we first got together?', category: category),
+          GameQuestion(
+            id: 'vp_1',
+            question:
+                'What core value do you think defines our relationship the most?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'vp_2',
+            question: 'What principle do you never want us to compromise on?',
+            category: category,
+          ),
+          GameQuestion(
+            id: 'vp_3',
+            question:
+                'How have your values changed since we first got together?',
+            category: category,
+          ),
         ];
       default:
         return [
-          GameQuestion(id: 'gen_1', question: 'What do you appreciate most about our relationship right now?', category: category),
+          GameQuestion(
+            id: 'gen_1',
+            question:
+                'What do you appreciate most about our relationship right now?',
+            category: category,
+          ),
         ];
     }
   }
@@ -2042,7 +2007,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Cook a romantic dinner together and set up candles',
               'ar': 'اطبخا عشاء رومانسياً معاً ورتبا الشموع',
-              'fr': 'Préparez un dîner romantique ensemble et disposez des bougies',
+              'fr':
+                  'Préparez un dîner romantique ensemble et disposez des bougies',
             },
           },
           {
@@ -2057,7 +2023,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Escape to a nearby town for a spontaneous trip',
               'ar': 'اهربا إلى بلدة قريبة في رحلة عفوية',
-              'fr': 'Évadez-vous dans une ville voisine pour un voyage spontané',
+              'fr':
+                  'Évadez-vous dans une ville voisine pour un voyage spontané',
             },
           },
           {
@@ -2107,7 +2074,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
           },
           {
             'question': 'Write Love Letters',
-            'description': 'Express your deepest feelings in a handwritten letter',
+            'description':
+                'Express your deepest feelings in a handwritten letter',
             'category': 'Deep',
             'question_translations': {
               'en': 'Write Love Letters',
@@ -2117,7 +2085,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Express your deepest feelings in a handwritten letter',
               'ar': 'عبرا عن أعمق مشاعركما في رسالة مكتوبة بخط اليد',
-              'fr': 'Exprimez vos sentiments les plus profonds dans une lettre manuscrite',
+              'fr':
+                  'Exprimez vos sentiments les plus profonds dans une lettre manuscrite',
             },
           },
           {
@@ -2147,12 +2116,14 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Bungee jump, skydive, or go kart racing',
               'ar': 'القفز بالحبال، القفز بالمظلات، أو سباق الكارتينغ',
-              'fr': 'Saut à l\'élastique, saut en parachute ou course de karting',
+              'fr':
+                  'Saut à l\'élastique, saut en parachute ou course de karting',
             },
           },
           {
             'question': 'Share Your Biggest Fear',
-            'description': 'Open up about what scares you most in your relationship',
+            'description':
+                'Open up about what scares you most in your relationship',
             'category': 'Deep',
             'question_translations': {
               'en': 'Share Your Biggest Fear',
@@ -2162,12 +2133,14 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Open up about what scares you most in your relationship',
               'ar': 'تحدثا عما يخيفكما أكثر في علاقتكما',
-              'fr': 'Parlez de ce qui vous fait le plus peur dans votre relation',
+              'fr':
+                  'Parlez de ce qui vous fait le plus peur dans votre relation',
             },
           },
           {
             'question': 'Sunrise Hike',
-            'description': 'Wake up early and watch the sunrise from a mountain',
+            'description':
+                'Wake up early and watch the sunrise from a mountain',
             'category': 'Adventurous',
             'question_translations': {
               'en': 'Sunrise Hike',
@@ -2177,7 +2150,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Wake up early and watch the sunrise from a mountain',
               'ar': 'استيقظا مبكراً وشاهدا شروق الشمس من الجبل',
-              'fr': 'Levez-vous tôt et regardez le lever du soleil depuis une montagne',
+              'fr':
+                  'Levez-vous tôt et regardez le lever du soleil depuis une montagne',
             },
           },
           {
@@ -2192,12 +2166,14 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'List 20 things you want to do together in life',
               'ar': 'اذكرا 20 شيئاً تريدان فعله معاً في الحياة',
-              'fr': 'Listez 20 choses que vous voulez faire ensemble dans la vie',
+              'fr':
+                  'Listez 20 choses que vous voulez faire ensemble dans la vie',
             },
           },
           {
             'question': 'Vulnerability Hour',
-            'description': 'Take turns sharing something you have never told anyone',
+            'description':
+                'Take turns sharing something you have never told anyone',
             'category': 'Deep',
             'question_translations': {
               'en': 'Vulnerability Hour',
@@ -2207,7 +2183,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'description_translations': {
               'en': 'Take turns sharing something you have never told anyone',
               'ar': 'تناوبا على مشاركة شيء لم تخبرا به أحداً من قبل',
-              'fr': 'Partagez à tour de rôle quelque chose que vous n\'avez jamais dit à personne',
+              'fr':
+                  'Partagez à tour de rôle quelque chose que vous n\'avez jamais dit à personne',
             },
           },
         ];
@@ -2220,7 +2197,8 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'question_translations': {
               'en': 'What moment made you feel closest to me this week?',
               'ar': 'ما هي اللحظة التي جعلتك تشعر بالأقرب مني هذا الأسبوع؟',
-              'fr': 'Quel moment t\'a fait te sentir le plus proche de moi cette semaine ?',
+              'fr':
+                  'Quel moment t\'a fait te sentir le plus proche de moi cette semaine ?',
             },
           },
           {
@@ -2256,16 +2234,20 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'question_translations': {
               'en': 'What is one dream you want us to accomplish together?',
               'ar': 'ما هو الحلم الواحد الذي تريد أن نحققه معاً؟',
-              'fr': 'Quel est le rêve que tu veux que nous réalisions ensemble ?',
+              'fr':
+                  'Quel est le rêve que tu veux que nous réalisions ensemble ?',
             },
           },
           {
-            'question': 'If we could live anywhere in the world, where would it be?',
+            'question':
+                'If we could live anywhere in the world, where would it be?',
             'category': 'future_dreams',
             'question_translations': {
-              'en': 'If we could live anywhere in the world, where would it be?',
+              'en':
+                  'If we could live anywhere in the world, where would it be?',
               'ar': 'إذا كان بإمكاننا العيش في أي مكان في العالم، أين سيكون؟',
-              'fr': 'Si nous pouvions vivre n\'importe où dans le monde, où serait-ce ?',
+              'fr':
+                  'Si nous pouvions vivre n\'importe où dans le monde, où serait-ce ?',
             },
           },
           {
@@ -2274,16 +2256,21 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'question_translations': {
               'en': 'How can I better support you when we disagree?',
               'ar': 'كيف يمكنني دعمك بشكل أفضل عندما نختلف؟',
-              'fr': 'Comment puis-je mieux te soutenir quand nous sommes en désaccord ?',
+              'fr':
+                  'Comment puis-je mieux te soutenir quand nous sommes en désaccord ?',
             },
           },
           {
-            'question': 'What is a conflict we handled well, and what made it work?',
+            'question':
+                'What is a conflict we handled well, and what made it work?',
             'category': 'conflict_resolution',
             'question_translations': {
-              'en': 'What is a conflict we handled well, and what made it work?',
-              'ar': 'ما هو الخلاف الذي تعاملنا معه بشكل جيد، وما الذي جعله ناجحاً؟',
-              'fr': 'Quel est un conflit que nous avons bien géré, et qu\'est-ce qui a fonctionné ?',
+              'en':
+                  'What is a conflict we handled well, and what made it work?',
+              'ar':
+                  'ما هو الخلاف الذي تعاملنا معه بشكل جيد، وما الذي جعله ناجحاً؟',
+              'fr':
+                  'Quel est un conflit que nous avons bien géré, et qu\'est-ce qui a fonctionné ?',
             },
           },
           {
@@ -2301,16 +2288,19 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             'question_translations': {
               'en': 'What is the funniest memory we share together?',
               'ar': 'ما هي أطرف ذكرى نتشاركها معاً؟',
-              'fr': 'Quel est le plus drôle des souvenirs que nous partageons ?',
+              'fr':
+                  'Quel est le plus drôle des souvenirs que nous partageons ?',
             },
           },
           {
-            'question': 'What song instantly takes us back to a special moment?',
+            'question':
+                'What song instantly takes us back to a special moment?',
             'category': 'playful_memories',
             'question_translations': {
               'en': 'What song instantly takes us back to a special moment?',
               'ar': 'ما هي الأغنية التي تعيدنا فوراً إلى لحظة خاصة؟',
-              'fr': 'Quelle chanson nous ramène instantanément à un moment spécial ?',
+              'fr':
+                  'Quelle chanson nous ramène instantanément à un moment spécial ?',
             },
           },
           {
@@ -2323,12 +2313,15 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             },
           },
           {
-            'question': 'What is something I do that you are grateful for every day?',
+            'question':
+                'What is something I do that you are grateful for every day?',
             'category': 'gratitude',
             'question_translations': {
-              'en': 'What is something I do that you are grateful for every day?',
+              'en':
+                  'What is something I do that you are grateful for every day?',
               'ar': 'ما هو الشيء الذي أفعله وأنت ممتن له كل يوم؟',
-              'fr': 'Qu\'est-ce que je fais pour lequel tu es reconnaissant chaque jour ?',
+              'fr':
+                  'Qu\'est-ce que je fais pour lequel tu es reconnaissant chaque jour ?',
             },
           },
           {
@@ -2341,12 +2334,14 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             },
           },
           {
-            'question': 'What lesson has our relationship taught you about life?',
+            'question':
+                'What lesson has our relationship taught you about life?',
             'category': 'gratitude',
             'question_translations': {
               'en': 'What lesson has our relationship taught you about life?',
               'ar': 'ما الدرس الذي علّمته إياك علاقتنا عن الحياة؟',
-              'fr': 'Quelle leçon notre relation t\'a-t-elle apprise sur la vie ?',
+              'fr':
+                  'Quelle leçon notre relation t\'a-t-elle apprise sur la vie ?',
             },
           },
           {
@@ -2368,12 +2363,16 @@ Return as JSON array with format: [{"prompt": "...", "hint": "...", "prompt_tran
             },
           },
           {
-            'question': 'What is something you have always wanted to do but felt nervous to suggest?',
+            'question':
+                'What is something you have always wanted to do but felt nervous to suggest?',
             'category': 'adventure',
             'question_translations': {
-              'en': 'What is something you have always wanted to do but felt nervous to suggest?',
-              'ar': 'ما هو الشيء الذي أردت دائماً فعله ولكنك شعرت بالتوتر لاقتراحه؟',
-              'fr': 'Qu\'est-ce que tu as toujours voulu faire mais que tu étais nerveux à suggérer ?',
+              'en':
+                  'What is something you have always wanted to do but felt nervous to suggest?',
+              'ar':
+                  'ما هو الشيء الذي أردت دائماً فعله ولكنك شعرت بالتوتر لاقتراحه؟',
+              'fr':
+                  'Qu\'est-ce que tu as toujours voulu faire mais que tu étais nerveux à suggérer ?',
             },
           },
         ];

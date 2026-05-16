@@ -121,6 +121,9 @@ class ChatService {
       }
     }
 
+    // Determine active provider for metadata
+    final aiProvider = _aiService.settings['provider'] as String? ?? 'gemini';
+
     // Add AI response to Firestore
     await _firestore
         .collection('users')
@@ -130,8 +133,9 @@ class ChatService {
           'message': aiResponse,
           'isUser': false,
           'timestamp': FieldValue.serverTimestamp(),
+          'aiProvider': aiProvider,
         });
-    debugPrint(' 💾 AI Response saved to Firestore successfully');
+    debugPrint(' 💾 AI Response saved to Firestore successfully (provider: $aiProvider)');
 
     // Notify user of AI interaction
     await _notificationService.addInAppNotification(

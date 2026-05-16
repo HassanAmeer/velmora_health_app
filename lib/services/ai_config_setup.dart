@@ -17,9 +17,12 @@ class AIConfigSetup {
       debugPrint('Setting up AI configuration in Firestore...');
 
       await _firestore.collection('ai_config').doc('settings').set({
+        'provider': 'gemini',
         'apiKey': apiKey,
         'enabled': enabled,
         'model': model,
+        'claudeApiKey': '',
+        'claudeModel': 'claude-sonnet-4-5-20250929',
         'maxTokens': 500,
         'temperature': 0.7,
         'topK': 40,

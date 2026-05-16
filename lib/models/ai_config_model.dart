@@ -12,6 +12,8 @@ class AIConfigModel {
   final bool enabled;
   final String model;
   final String provider;
+  final String? claudeApiKey;
+  final String claudeModel;
 
   // Generation Config
   final int maxTokens;
@@ -37,6 +39,8 @@ class AIConfigModel {
     this.enabled = true,
     this.model = 'gemini-2.5-flash',
     this.provider = 'gemini',
+    this.claudeApiKey,
+    this.claudeModel = 'claude-sonnet-4-5-20250929',
     this.maxTokens = 500,
     this.temperature = 0.7,
     this.topK = 40,
@@ -57,6 +61,8 @@ class AIConfigModel {
       enabled: data['enabled'] as bool? ?? true,
       model: data['model'] as String? ?? 'gemini-2.5-flash',
       provider: data['provider'] as String? ?? 'gemini',
+      claudeApiKey: data['claudeApiKey'] as String?,
+      claudeModel: data['claudeModel'] as String? ?? 'claude-sonnet-4-5-20250929',
       maxTokens: data['maxTokens'] as int? ?? 500,
       temperature: (data['temperature'] as num?)?.toDouble() ?? 0.7,
       topK: data['topK'] as int? ?? 40,
@@ -78,6 +84,8 @@ class AIConfigModel {
       'enabled': enabled,
       'model': model,
       'provider': provider,
+      'claudeApiKey': claudeApiKey,
+      'claudeModel': claudeModel,
       'maxTokens': maxTokens,
       'temperature': temperature,
       'topK': topK,
@@ -99,6 +107,8 @@ class AIConfigModel {
     bool? enabled,
     String? model,
     String? provider,
+    String? claudeApiKey,
+    String? claudeModel,
     int? maxTokens,
     double? temperature,
     int? topK,
@@ -114,6 +124,8 @@ class AIConfigModel {
       enabled: enabled ?? this.enabled,
       model: model ?? this.model,
       provider: provider ?? this.provider,
+      claudeApiKey: claudeApiKey ?? this.claudeApiKey,
+      claudeModel: claudeModel ?? this.claudeModel,
       maxTokens: maxTokens ?? this.maxTokens,
       temperature: temperature ?? this.temperature,
       topK: topK ?? this.topK,

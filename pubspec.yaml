@@ -81,6 +81,10 @@ dependencies:
   googleapis: ^16.0.0
   googleapis_auth: ^2.3.0
 
+  # AI SDK
+  ai_sdk_dart: ^1.1.0
+  ai_sdk_anthropic: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
