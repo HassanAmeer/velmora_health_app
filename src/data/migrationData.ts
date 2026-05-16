@@ -401,9 +401,12 @@ export const migrationData: MigrationDataDefinition = {
             pathSegments: ['ai_config', 'settings'],
             data: {
                 enabled: true,
+                provider: 'gemini',
                 apiKey: 'PLACEHOLDER_KEY',
-                maxTokens: 500,
                 model: 'gemini-2.5-flash',
+                claudeApiKey: '',
+                claudeModel: 'claude-sonnet-4-5-20250929',
+                maxTokens: 500,
                 safetySettings: {
                     dangerousContent: 'BLOCK_MEDIUM_AND_ABOVE',
                     harassment: 'BLOCK_MEDIUM_AND_ABOVE',

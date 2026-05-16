@@ -7,6 +7,7 @@ import { Save, Refresh, Visibility, VisibilityOff, CheckCircle } from '@mui/icon
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import SkeletonLoader from '../../components/Layout/SkeletonLoader';
+import Anthropic from '@anthropic-ai/sdk';
 
 interface SafetySettings {
     dangerousContent: string;
@@ -46,7 +47,7 @@ const defaultConfig: AIConfig = {
         sexuallyExplicit: 'BLOCK_MEDIUM_AND_ABOVE',
     },
     claudeApiKey: '',
-    claudeModel: 'claude-3-5-sonnet-20240620',
+    claudeModel: 'claude-sonnet-4-5-20250929',
     systemInstruction: 'You are Velmora AI, a helpful relationship coach.',
     temperature: 0.7,
     topK: 40,
@@ -71,6 +72,7 @@ const AIConfigPage: React.FC = () => {
     const [testing, setTesting] = useState(false);
     const [testDialogOpen, setTestDialogOpen] = useState(false);
     const [testResponse, setTestResponse] = useState<string>('');
+    const [testErrorLog, setTestErrorLog] = useState<string[]>([]);
 
     useEffect(() => {
         loadConfig();
@@ -121,70 +123,113 @@ const AIConfigPage: React.FC = () => {
         }
     };
 
+    const testGemini = async (modelName: string): Promise<string> => {
+        if (modelName.startsWith('models/')) {
+            modelName = modelName.replace('models/', '');
+        }
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${config.apiKey}`;
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: 'Say "Hey" to test the connection.' }] }]
+            }),
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+    };
+
+    const testClaude = async (modelName: string): Promise<string> => {
+        const client = new Anthropic({
+            apiKey: config.claudeApiKey,
+            dangerouslyAllowBrowser: true,
+        });
+        const message = await client.messages.create({
+            model: modelName,
+            max_tokens: 10,
+            messages: [{ role: 'user', content: 'Say "Hey" to test the connection.' }],
+        });
+        if (message.content && message.content.length > 0) {
+            const block = message.content[0];
+            if (block.type === 'text') {
+                return block.text;
+            }
+        }
+        throw new Error('Empty response from Claude API');
+    };
+
     const handleTestAPI = async () => {
         setTesting(true);
         setError(null);
         setTestResponse('');
+        setTestErrorLog([]);
 
         try {
             if (config.provider === 'gemini') {
-                // Remove 'models/' prefix if present
-                let modelName = config.model;
-                if (modelName.startsWith('models/')) {
-                    modelName = modelName.replace('models/', '');
-                }
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${config.apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    {
-                                        text: 'Say "Hey" to test the connection.',
-                                    },
-                                ],
-                            },
-                        ],
-                    }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+                const log: string[] = [];
+                log.push(`➤ Testing Gemini model: ${config.model}`);
+                try {
+                    const aiResponse = await testGemini(config.model);
+                    log.push(`✅ Success: ${aiResponse}`);
+                    setTestErrorLog(log);
                     setTestResponse(aiResponse);
                     setTestDialogOpen(true);
-                } else {
-                    const errorData = await response.json();
-                    const errorMessage = errorData.error?.message || 'Unknown error';
-                    setError(`Gemini API Test Failed: ${errorMessage}`);
+                } catch (e: any) {
+                    log.push(`❌ Failed: ${e.message}`);
+                    setTestErrorLog(log);
+                    setError(`Gemini API Test Failed: ${e.message}`);
                 }
             } else {
-                // Claude Test (Anthropic API often requires a proxy due to CORS in browser, 
-                // but we'll try direct or show a note)
-                setError("Claude API testing from browser may be blocked by CORS. Please save and test from the app.");
-                
-                // Optional: Attempting Claude test (might fail CORS)
-                /*
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': config.claudeApiKey,
-                        'anthropic-version': '2023-06-01'
-                    },
-                    body: JSON.stringify({
-                        model: config.claudeModel,
-                        max_tokens: 10,
-                        messages: [{ role: 'user', content: 'Say "Hey" to test.' }]
-                    })
-                });
-                */
+                const fallbackModels = [
+                    'claude-sonnet-4-5-20250929',
+                    'claude-haiku-4-5-20251001',
+                    'claude-sonnet-4-20250514',
+                    'claude-3-haiku-20240307',
+                ];
+                const modelsToTry = [
+                    config.claudeModel,
+                    ...fallbackModels.filter(m => m !== config.claudeModel),
+                ];
+
+                const log: string[] = [];
+                log.push(`➤ Testing Claude API via @anthropic-ai/sdk...`);
+                log.push(`   API Key length: ${config.claudeApiKey.length} chars`);
+                log.push(`   Primary model: ${config.claudeModel}`);
+                log.push('');
+
+                let success = false;
+
+                for (const model of modelsToTry) {
+                    if (success) break;
+                    log.push(`📡 Trying ${model}...`);
+                    try {
+                        const aiResponse = await testClaude(model);
+                        log.push(`✅ SUCCESS: ${aiResponse}`);
+                        setTestErrorLog(log);
+                        setTestResponse(aiResponse);
+                        setTestDialogOpen(true);
+                        success = true;
+                        break;
+                    } catch (e: any) {
+                        const msg = e.message;
+                        log.push(`❌ ${msg}`);
+                        if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('fetch')) {
+                            log.push(`   ⚠️ Browser CORS or network issue - API endpoint unreachable`);
+                            log.push(`   The SDK uses fetch() which browsers block for Anthropic API.`);
+                            log.push(`   Test from the mobile app instead, or use Gemini in browser.`);
+                        }
+                    }
+                }
+
+                setTestErrorLog(log);
+
+                if (!success) {
+                    setError('Claude API Test Failed - see error log below for details');
+                }
             }
         } catch (e: any) {
             setError(`API Test Failed: ${e.message}`);
@@ -212,7 +257,17 @@ const AIConfigPage: React.FC = () => {
             </Stack>
 
             {success && <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 3 }}>{success}</Alert>}
-            {error && <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>{error}</Alert>}
+            {error && <Alert severity="error" onClose={() => { setError(null); setTestErrorLog([]); }} sx={{ mb: 3 }}>{error}</Alert>}
+            {testErrorLog.length > 0 && !testDialogOpen && !testing && (
+                <Paper sx={{ p: 2, mb: 3, bgcolor: '#1a1a2e', color: '#e0e0e0', fontFamily: 'monospace', fontSize: '0.8rem', maxHeight: 300, overflow: 'auto', borderRadius: 2 }}>
+                    <Typography variant="caption" sx={{ color: '#888', mb: 1, display: 'block' }}>Error Log:</Typography>
+                    {testErrorLog.map((line, i) => (
+                        <Typography key={i} variant="caption" sx={{ display: 'block', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                            {line}
+                        </Typography>
+                    ))}
+                </Paper>
+            )}
 
             {/* Quota Warning */}
             <Alert severity="info" sx={{ mb: 3 }}>
@@ -223,7 +278,8 @@ const AIConfigPage: React.FC = () => {
                     • <strong>Gemini API Key:</strong> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'underline' }}>https://aistudio.google.com/apikey</a><br/>
                     • <strong>Claude API Key:</strong> <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'underline' }}>https://console.anthropic.com/</a><br/>
                     • <strong>Gemini Models:</strong> gemini-2.5-flash (Best price/performance)<br/>
-                    • <strong>Claude Models:</strong> claude-3-5-sonnet-20240620 (Most capable)<br/>
+                    • <strong>Claude Models (4.5):</strong> claude-sonnet-4-5-20250929 (Recommended), claude-haiku-4-5-20251001 (Fast), claude-opus-4-5-20251101 (Premium)<br/>
+                    • <strong>Claude Models (4):</strong> claude-sonnet-4-20250514, claude-opus-4-20250514<br/>
                     • <strong>Note:</strong> Active provider will be used in the mobile app.
                 </Typography>
             </Alert>
@@ -355,9 +411,12 @@ const AIConfigPage: React.FC = () => {
                                     value={config.claudeModel}
                                     onChange={(e) => setConfig({ ...config, claudeModel: e.target.value })}
                                 >
-                                    <MenuItem value="claude-3-5-sonnet-20240620">claude-3-5-sonnet-20240620 (Recommended)</MenuItem>
-                                    <MenuItem value="claude-3-opus-20240229">claude-3-opus (Most Advanced)</MenuItem>
-                                    <MenuItem value="claude-3-haiku-20240307">claude-3-haiku (Fastest)</MenuItem>
+                                    <MenuItem value="claude-sonnet-4-5-20250929">claude-sonnet-4-5-20250929 (Recommended) - Claude 4.5</MenuItem>
+                                    <MenuItem value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 (Fast) - Claude 4.5</MenuItem>
+                                    <MenuItem value="claude-opus-4-5-20251101">claude-opus-4-5-20251101 (Premium) - Claude 4.5</MenuItem>
+                                    <MenuItem value="claude-sonnet-4-20250514">claude-sonnet-4-20250514 - Claude 4</MenuItem>
+                                    <MenuItem value="claude-opus-4-20250514">claude-opus-4-20250514 (Advanced) - Claude 4</MenuItem>
+                                    <MenuItem value="claude-3-haiku-20240307">claude-3-haiku-20240307 (Fallback) - Claude 3</MenuItem>
                                 </TextField>
                             </Grid>
                         </>
